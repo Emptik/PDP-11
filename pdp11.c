@@ -3,12 +3,10 @@
 #include <string.h>
 #include <assert.h>
 
-#define _CHECK(x, y) if( x == EOF)\
+#define _CHECK( x , y ) if ( (x) == EOF)\
 {\
-free(val);\
-free(a);\
-free(num);\
-assert(y);\
+assert((y));\
+fclose((f_in));\
 break;\
 }\
 
@@ -22,13 +20,14 @@ byte b_read  (adr a);					//читает из "старой памяти" mem б
 void b_write (adr a, byte val);	// пишет значение val в "старую память" mem в байт с "адресом" a.
 word w_read  (adr a);					// читает из "старой памяти" mem слово с "адресом" a.
 void w_write (adr a, word val);	// пишет значение val в "старую память" mem в слово с "адресом" a.
-void load_file();
+void load_file(char * file_name);
 
 void mem_dump(adr start, word n);
 void test_mem();
 
-int main() {
+int main(int argc, char **argv) {
 	test_mem();
+	load_file(argv[1]);
 	return 0;
 }
 
@@ -54,26 +53,30 @@ void b_write(adr a, byte val){
 	mem[a] = val;
 }
 
-void load_file()
+void load_file(char * file_name)
 {
 	adr counter = 0;
 	adr check = 0;
-	unsigned int * val = calloc(1, sizeof(unsigned int));
-	unsigned int * num = calloc(1, sizeof(unsigned int));
-	unsigned int * a = calloc(1, sizeof(unsigned int));
-	FILE * f_in = stdin;
-	assert(f_in);
+	unsigned int  val = 0;
+	unsigned int  num = 0;
+	unsigned int  a = 0;
+	FILE * f_in = NULL;
+	f_in = fopen(file_name, "r");
+	if(!f_in) {
+		perror("f_in");
+		exit(1);
+	}
 	for( ; ; )
 	{
-		check = fscanf(f_in, "%04x", a);
+		check = fscanf(f_in, "%04x", &a);
 		_CHECK(check, 1);
-		check = fscanf(f_in, "%04x", num);
+		check = fscanf(f_in, "%04x", &num);
 		_CHECK(check, 0);
-		for(counter = 0; counter < (*num); counter++)
+		for(counter = 0; counter < num; counter++)
 		{
-			check = fscanf(f_in, "%02x", val);
+			check = fscanf(f_in, "%02x", &val);
 			_CHECK(check, 0);
-			b_write((*a) + counter, *val);
+			b_write(a + counter, val);
 		}
 	}
 }
@@ -89,6 +92,5 @@ void mem_dump(adr start, word n) {
 
 void test_mem()
 {
-	load_file();
 	mem_dump(0x40, 4);
 }
