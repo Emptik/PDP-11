@@ -20,14 +20,33 @@ byte b_read  (adr a);					//читает из "старой памяти" mem б
 void b_write (adr a, byte val);	// пишет значение val в "старую память" mem в байт с "адресом" a.
 word w_read  (adr a);					// читает из "старой памяти" mem слово с "адресом" a.
 void w_write (adr a, word val);	// пишет значение val в "старую память" mem в слово с "адресом" a.
-void load_file(char * file_name);
-
-void mem_dump(adr start, word n);
 void test_mem();
+
+void load_file(char * file_name);
+void mem_dump(adr start, word n);
+
+void run(adr pc);
+void do_halt();
+void do_mov();
+void do_add();
+void do_unknown();
+
+struct Command {
+	word opcode;
+	word mask;
+	char * name;
+	void (*func)();
+} command[] = {
+	{0, 0xFFFF, "halt", do_halt},
+	{0010000, 0170000, "mov", do_mov},
+	{0060000, 0170000, "add", do_add},
+	{0000000, 0000000, "unknown", do_unknown} // Must be the last
+};
 
 int main(int argc, char **argv) {
 	test_mem();
 	load_file(argv[1]);
+	run(0x40);
 	return 0;
 }
 
@@ -90,7 +109,49 @@ void mem_dump(adr start, word n) {
 	}
 }
 
+void run(adr pc0)
+{
+	adr pc = pc0;
+	int i = 0;
+	while(1)
+	{
+		word w = w_read(pc);
+		printf("%06o:%06o\n", pc, w);
+		for(i = 0; i <= 3;i++)
+		{
+			struct Command cmd = command[i];
+			if((w & cmd.mask) == cmd.opcode)
+			{
+				cmd.func();
+				break;
+			}
+		}
+		pc += 2;
+	}
+}
+
+void do_halt()
+{
+	printf("HALT\n");
+	exit(0);
+}
+
+void do_add()
+{
+	printf("ADD\n");
+}
+
+void do_mov()
+{
+	printf("MOVE\n");
+}
+
+void do_unknown()
+{
+	printf("UNKNOWN\n");
+}
+
 void test_mem()
 {
-	mem_dump(0x40, 4);
+	
 }
