@@ -1,6 +1,5 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
 #include <assert.h>
 
 #define _CHECK( x , y ) if ( (x) == EOF)\
@@ -11,9 +10,11 @@ break;\
 }
 #define NO_PARAM 0
 #define HAS_SS 1
-#define HAS_DD (1<<1)
-#define HAS_XX (1<<2)
-#define HAS_NN (1<<3)
+#define HAS_DD 2
+#define HAS_NN 4
+#define HAS_XX 8
+#define pc reg[7]
+#define sp reg[6]
 
 typedef unsigned char byte;
 typedef unsigned short int word;
@@ -37,7 +38,7 @@ void mem_dump(adr start, word n);
 word get_nn();
 word get_ss();
 
-void run(adr pc);
+void run(adr pc0);
 void do_halt();
 void do_mov();
 void do_add();
@@ -53,13 +54,13 @@ struct Command {
 	{0, 0xFFFF, "halt", do_halt, NO_PARAM},
 	{0010000, 0170000, "mov", do_mov, HAS_SS | HAS_DD},
 	{0060000, 0170000, "add", do_add, HAS_SS | HAS_DD},
-	{0000000, 0000000, "unknown", do_unknown} // Must be the last
+	{0000000, 0000000, "unknown", do_unknown, NO_PARAM}
 };
 
 int main(int argc, char **argv) {
 	test_mem();
 	load_file(argv[1]);
-	run(0x1000);
+	run(0x3E8);
 	return 0;
 }
 
@@ -124,7 +125,7 @@ void mem_dump(adr start, word n) {
 
 void run(adr pc0)
 {
-	adr pc = pc0;
+	pc = (word)pc0;
 	int i = 0;
 	while(1)
 	{
@@ -137,11 +138,11 @@ void run(adr pc0)
 			{
 				if(cmd.param & HAS_NN)
 				{
-					nn = get_nn(w);
+					//nn = get_nn(w);
 				}
 				if(cmd.param & HAS_SS)
 				{
-					ss = get_ss(w);
+					//ss = get_ss(w);
 				}
 				printf("%s", cmd.name);
 				cmd.func();
@@ -178,7 +179,7 @@ void test_mem()
 	
 }
 
-word get_ss()
+/*word get_ss()
 {
 	
-}
+}*/
