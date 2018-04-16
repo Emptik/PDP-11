@@ -23,9 +23,6 @@ typedef short adr;
 byte mem[64 * 1024];
 word reg[8];
 
-word nn;
-word ss;
-
 byte b_read  (adr a);					//читает из "старой памяти" mem байт с "адресом" a.
 void b_write (adr a, byte val);	// пишет значение val в "старую память" mem в байт с "адресом" a.
 word w_read  (adr a);					// читает из "старой памяти" mem слово с "адресом" a.
@@ -43,6 +40,12 @@ void do_halt();
 void do_mov();
 void do_add();
 void do_unknown();
+
+struct Operand
+{
+	adr reg;
+	adr mode;
+} ss , dd;
 
 struct Command {
 	word opcode;
