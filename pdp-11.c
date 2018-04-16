@@ -33,7 +33,7 @@ void load_file(char * file_name);
 void mem_dump(adr start, word n);
 
 word get_nn();
-struct Operand get_ss(word w);
+struct Operand get_dd(word w);
 
 void run(adr pc0);
 void do_halt();
@@ -43,8 +43,8 @@ void do_unknown();
 
 struct Operand
 {
-	adr reg;
-	adr mode;
+	adr a;
+	word val;
 } ss , dd;
 
 struct Command {
@@ -63,7 +63,7 @@ struct Command {
 int main(int argc, char **argv) {
 	test_mem();
 	load_file(argv[1]);
-	run(0x3E8);
+	run(0x200);
 	return 0;
 }
 
@@ -145,11 +145,11 @@ void run(adr pc0)
 				}
 				if(cmd.param & HAS_SS)
 				{
-					ss = get_ss(w);
+					ss = get_dd(w>>6);
 				}
 				if(cmd.param & HAS_DD)
 				{
-					dd = get_ss(w<<6);
+					dd = get_dd(w);
 				}
 				cmd.func();
 				break;
@@ -159,15 +159,23 @@ void run(adr pc0)
 	}
 }
 
-struct Operand get_ss(word w)
+struct Operand get_dd(word w)
 {
-	struct Operand oper = {0, 0};
-	word help = (w<<4);
-	word helper = (help>>10);                          //word helper = (w<<4)>>10;
-	oper.reg = (helper & 7);
-	oper.mode = (helper >> 3);
-	assert(oper.reg);
-	return oper;
+	struct Operand res = {0, 0};
+	int rn = w & 7;
+	int mode = (w >> 3) & 7;
+	switch(mode)
+	{
+		case 0:
+				res.a = rn;
+				res.val = reg[rn];
+				printf("R%d ", rn);
+				break;
+		default:
+			printf("kek\n");
+			exit(3);
+	}
+	return res;
 }
 
 void do_halt()
@@ -176,25 +184,14 @@ void do_halt()
 	exit(0);
 }
 
-void do_add()
+void do_add() 
 {
-	printf("ADD\n");
+	w_write(dd.a, ss.val + dd.val);
 }
 
-void do_mov()
+void do_mov() 
 {
-	switch(ss.mode)
-	{
-		case 0:
-		case 1:
-		default:
-		{
-			printf("Unknown mode");
-			exit(3);
-		}
-	}
-	printf("MOVE\n");
-	printf("'ss.reg = %o' 'ss.mode = %o'\n'dd.reg = %o' 'dd.mode = %o'\n", ss.reg, ss.mode, dd.reg, dd.mode);
+	w_write(dd.a, ss.val);
 }
 
 void do_unknown()
