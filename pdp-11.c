@@ -47,6 +47,8 @@ struct Operand
 	word val;
 } ss , dd;
 
+FILE * f_out;
+
 struct Command {
 	word opcode;
 	word mask;
@@ -60,9 +62,15 @@ struct Command {
 	{0000000, 0000000, "unknown", do_unknown, NO_PARAM}
 };
 
-int main(int argc, char **argv) {
+int main(int argc, char **argv) 
+{
 	test_mem();
 	load_file(argv[1]);
+	f_out = fopen("list", "w");
+	if(!f_out)
+	{
+		perror("f_out");
+	}
 	run(0x200);
 	return 0;
 }
@@ -129,11 +137,12 @@ void mem_dump(adr start, word n) {
 void run(adr pc0)
 {
 	pc = (word)pc0;
+	fprintf(f_out,"%06d:\t\t\t. = %o\n", 0, pc);
 	int i = 0;
 	while(1)
 	{
 		word w = w_read(pc);
-		printf("%06o:%06o\n", pc, w);
+		fprintf(f_out,"\t\t%06o:%06o\n", pc, w);
 		for(i = 0; i <= 3; i++)
 		{
 			struct Command cmd = command[i];
@@ -167,12 +176,26 @@ struct Operand get_dd(word w)
 	switch(mode)
 	{
 		case 0:
-				res.a = rn;
-				res.val = reg[rn];
-				printf("R%d ", rn);
-				break;
+			res.a = rn;
+			res.val = reg[rn];
+			fprintf(f_out,"\t\t\tCLR R%d\n", rn);
+			break;
+		case 1:
+			res.a = reg[rn];
+			res.val = w_read(res.a);
+			fprintf(f_out,"\t\t\tCLR (R%d)\n", rn);
+			break;
+		case 2:
+			res.a = reg[rn];
+			res.val = w_read(res.a);
+			reg[rn] += 2;
+			if(rn == 7)
+				fprintf(f_out,"\t\t\t#%o\n", res.val);
+			else
+				fprintf(f_out,"\t\t\t(R%d)\n", rn);
+			break;
 		default:
-			printf("kek\n");
+			fprintf(f_out,"MODE %d NOT IMPLEMENTED YET!\n", mode);
 			exit(3);
 	}
 	return res;
@@ -180,7 +203,7 @@ struct Operand get_dd(word w)
 
 void do_halt()
 {
-	printf("HALT\n");
+	fprintf(f_out,"HALT\n");
 	exit(0);
 }
 
@@ -191,6 +214,7 @@ void do_add()
 
 void do_mov() 
 {
+	//printf("%x\n", dd.a);
 	w_write(dd.a, ss.val);
 }
 
