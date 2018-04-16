@@ -33,7 +33,7 @@ void load_file(char * file_name);
 void mem_dump(adr start, word n);
 
 word get_nn();
-word get_ss();
+struct Operand get_ss(word w);
 
 void run(adr pc0);
 void do_halt();
@@ -145,15 +145,29 @@ void run(adr pc0)
 				}
 				if(cmd.param & HAS_SS)
 				{
-					//ss = get_ss(w);
+					ss = get_ss(w);
 				}
-				printf("%s", cmd.name);
+				if(cmd.param & HAS_DD)
+				{
+					dd = get_ss(w<<6);
+				}
 				cmd.func();
 				break;
 			}
 		}
 		pc += 2;
 	}
+}
+
+struct Operand get_ss(word w)
+{
+	struct Operand oper = {0, 0};
+	word help = (w<<4);
+	word helper = (help>>10);                          //word helper = (w<<4)>>10;
+	oper.reg = (helper & 7);
+	oper.mode = (helper >> 3);
+	assert(oper.reg);
+	return oper;
 }
 
 void do_halt()
@@ -169,20 +183,27 @@ void do_add()
 
 void do_mov()
 {
+	switch(ss.mode)
+	{
+		case 0:
+		case 1:
+		default:
+		{
+			printf("Unknown mode");
+			exit(3);
+		}
+	}
 	printf("MOVE\n");
+	printf("'ss.reg = %o' 'ss.mode = %o'\n'dd.reg = %o' 'dd.mode = %o'\n", ss.reg, ss.mode, dd.reg, dd.mode);
 }
 
 void do_unknown()
 {
 	printf("UNKNOWN\n");
+	exit(2);
 }
 
 void test_mem()
 {
 	
 }
-
-/*word get_ss()
-{
-	
-}*/
