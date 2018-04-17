@@ -23,6 +23,7 @@ typedef short adr;
 byte mem[64 * 1024];
 word reg[8];
 
+void reg_write(adr a, word val);
 byte b_read  (adr a);					//читает из "старой памяти" mem байт с "адресом" a.
 void b_write (adr a, byte val);	// пишет значение val в "старую память" mem в байт с "адресом" a.
 word w_read  (adr a);					// читает из "старой памяти" mem слово с "адресом" a.
@@ -34,6 +35,7 @@ void mem_dump(adr start, word n);
 
 word get_nn();
 struct Operand get_dd(word w);
+void reg_print();
 
 void run(adr pc0);
 void do_halt();
@@ -72,7 +74,13 @@ int main(int argc, char **argv)
 		perror("f_out");
 	}
 	run(0x200);
+	fclose(f_out);
 	return 0;
+}
+
+void reg_write(adr a, word val)
+{
+	reg[a] = val;
 }
 
 word w_read(adr a) {
@@ -142,7 +150,8 @@ void run(adr pc0)
 	while(1)
 	{
 		word w = w_read(pc);
-		fprintf(f_out,"\t\t%06o:%06o\n", pc, w);
+		fprintf(f_out,"%06o:", pc);
+		pc += 2;
 		for(i = 0; i <= 3; i++)
 		{
 			struct Command cmd = command[i];
@@ -164,7 +173,6 @@ void run(adr pc0)
 				break;
 			}
 		}
-		pc += 2;
 	}
 }
 
@@ -178,7 +186,8 @@ struct Operand get_dd(word w)
 		case 0:
 			res.a = rn;
 			res.val = reg[rn];
-			fprintf(f_out,"\t\t\tCLR R%d\n", rn);
+			fprintf(f_out,"R%d\n", rn);
+			//printf("'%d'\n", res.val);
 			break;
 		case 1:
 			res.a = reg[rn];
@@ -190,7 +199,10 @@ struct Operand get_dd(word w)
 			res.val = w_read(res.a);
 			reg[rn] += 2;
 			if(rn == 7)
-				fprintf(f_out,"\t\t\t#%o\n", res.val);
+			{
+				fprintf(f_out,"\t\t\t#%o,", w_read(reg[rn]));
+				fprintf(f_out,"\t%o  ", res.val);
+			}
 			else
 				fprintf(f_out,"\t\t\t(R%d)\n", rn);
 			break;
@@ -203,25 +215,38 @@ struct Operand get_dd(word w)
 
 void do_halt()
 {
+	reg_print();
 	fprintf(f_out,"HALT\n");
+	fclose(f_out);
 	exit(0);
 }
 
 void do_add() 
 {
-	w_write(dd.a, ss.val + dd.val);
+	fprintf(f_out, "add\t#%o\t#%o\n", ss.val, dd.val);
+	reg_write(dd.a, ss.val + dd.val);
 }
 
 void do_mov() 
 {
-	//printf("%x\n", dd.a);
-	w_write(dd.a, ss.val);
+	fprintf(f_out,"mov\n");
+	printf("%o\n", ss.val);
+	reg_write(dd.a, ss.val);
 }
 
 void do_unknown()
 {
 	printf("UNKNOWN\n");
 	exit(2);
+}
+
+void reg_print()
+{
+	int i = 0;
+	for( ; i < 8; i++)
+	{
+		printf("R%d  %o\n", i, reg[i]); 
+	}
 }
 
 void test_mem()
