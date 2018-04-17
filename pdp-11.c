@@ -145,12 +145,13 @@ void mem_dump(adr start, word n) {
 void run(adr pc0)
 {
 	pc = (word)pc0;
-	fprintf(f_out,"%06d:\t\t\t. = %o\n", 0, pc);
+	fprintf(f_out,"%06d:\t\t. = %o\n", 0, pc);
 	int i = 0;
 	while(1)
 	{
 		word w = w_read(pc);
 		fprintf(f_out,"%06o:", pc);
+		fprintf(f_out,"\t%06o\t", w);
 		pc += 2;
 		for(i = 0; i <= 3; i++)
 		{
@@ -186,8 +187,7 @@ struct Operand get_dd(word w)
 		case 0:
 			res.a = rn;
 			res.val = reg[rn];
-			fprintf(f_out,"R%d\n", rn);
-			//printf("'%d'\n", res.val);
+			fprintf(f_out,"\tR%d", rn);
 			break;
 		case 1:
 			res.a = reg[rn];
@@ -200,8 +200,7 @@ struct Operand get_dd(word w)
 			reg[rn] += 2;
 			if(rn == 7)
 			{
-				fprintf(f_out,"\t\t\t#%o,", w_read(reg[rn]));
-				fprintf(f_out,"\t%o  ", res.val);
+				fprintf(f_out,"\t#%o ", res.val);
 			}
 			else
 				fprintf(f_out,"\t\t\t(R%d)\n", rn);
@@ -223,20 +222,20 @@ void do_halt()
 
 void do_add() 
 {
-	fprintf(f_out, "add\t#%o\t#%o\n", ss.val, dd.val);
+	fprintf(f_out, "\tadd\n");
 	reg_write(dd.a, ss.val + dd.val);
 }
 
 void do_mov() 
 {
-	fprintf(f_out,"mov\n");
-	printf("%o\n", ss.val);
+	fprintf(f_out,"\tmov\n");
 	reg_write(dd.a, ss.val);
 }
 
 void do_unknown()
 {
-	printf("UNKNOWN\n");
+	printf("UNKNOWN!\n");
+	printf("The command is: %x", w_read(pc - 2));
 	exit(2);
 }
 
