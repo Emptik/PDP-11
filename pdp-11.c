@@ -266,6 +266,7 @@ void do_clr()
 
 void do_sob()
 {
+	assert(nn.a < 6);
 	reg_write(nn.a, reg_read(nn.a) - 1);
 	word w = reg_read(nn.a);
 	if( w != 0)
