@@ -24,6 +24,7 @@ byte mem[64 * 1024];
 word reg[8];
 
 void reg_write(adr a, word val);
+word reg_read(adr a);
 byte b_read  (adr a);					//читает из "старой памяти" mem байт с "адресом" a.
 void b_write (adr a, byte val);	// пишет значение val в "старую память" mem в байт с "адресом" a.
 word w_read  (adr a);					// читает из "старой памяти" mem слово с "адресом" a.
@@ -33,7 +34,7 @@ void test_mem();
 void load_file(char * file_name);
 void mem_dump(adr start, word n);
 
-word get_nn();
+struct Operand get_nn(word w);
 struct Operand get_dd(word w);
 void reg_print();
 
@@ -41,13 +42,15 @@ void run(adr pc0);
 void do_halt();
 void do_mov();
 void do_add();
+void do_clr();
+void do_sob();
 void do_unknown();
 
 struct Operand
 {
 	adr a;
 	word val;
-} ss , dd;
+} ss , dd, nn;
 
 FILE * f_out;
 
@@ -61,6 +64,8 @@ struct Command {
 	{0, 0xFFFF, "halt", do_halt, NO_PARAM},
 	{0010000, 0170000, "mov", do_mov, HAS_SS | HAS_DD},
 	{0060000, 0170000, "add", do_add, HAS_SS | HAS_DD},
+	{0077000, 0177000, "sob", do_sob, HAS_NN},
+	{0005000, 0017000, "clr", do_clr, HAS_DD},
 	{0000000, 0000000, "unknown", do_unknown, NO_PARAM}
 };
 
@@ -80,7 +85,14 @@ int main(int argc, char **argv)
 
 void reg_write(adr a, word val)
 {
+	assert(a <= 7 && a >= 0);
 	reg[a] = val;
+}
+
+word reg_read(adr a)
+{
+	assert(a <= 7 && a >= 0);
+	return reg[a];
 }
 
 word w_read(adr a) {
@@ -153,14 +165,14 @@ void run(adr pc0)
 		fprintf(f_out,"%06o:", pc);
 		fprintf(f_out,"\t%06o\t", w);
 		pc += 2;
-		for(i = 0; i <= 3; i++)
+		for(i = 0; i <= 5; i++)
 		{
 			struct Command cmd = command[i];
 			if((w & cmd.mask) == cmd.opcode)
 			{
 				if(cmd.param & HAS_NN)
 				{
-					//nn = get_nn(w);
+					nn = get_nn(w);
 				}
 				if(cmd.param & HAS_SS)
 				{
@@ -192,7 +204,7 @@ struct Operand get_dd(word w)
 		case 1:
 			res.a = reg[rn];
 			res.val = w_read(res.a);
-			fprintf(f_out,"\t\t\tCLR (R%d)\n", rn);
+			fprintf(f_out,"\t\t\tCLR (R%d)", rn);
 			break;
 		case 2:
 			res.a = reg[rn];
@@ -203,12 +215,20 @@ struct Operand get_dd(word w)
 				fprintf(f_out,"\t#%o ", res.val);
 			}
 			else
-				fprintf(f_out,"\t\t\t(R%d)\n", rn);
+				fprintf(f_out,"\t(R%d)+", rn);
 			break;
 		default:
 			fprintf(f_out,"MODE %d NOT IMPLEMENTED YET!\n", mode);
 			exit(3);
 	}
+	return res;
+}
+
+struct Operand get_nn(word w)
+{
+	struct Operand res;
+	res.val = w & 63; 
+	res.a = (w&(7<<6))>>6;
 	return res;
 }
 
@@ -235,17 +255,46 @@ void do_mov()
 void do_unknown()
 {
 	printf("UNKNOWN!\n");
-	printf("The command is: %x", w_read(pc - 2));
 	exit(2);
+}
+
+void do_clr()
+{
+	fprintf(f_out,"\tclr\n");
+	reg_write(dd.a, 0);
+}
+
+void do_sob()
+{
+	reg_write(nn.a, reg_read(nn.a) - 1);
+	word w = reg_read(nn.a);
+	if( w != 0)
+	{
+		fprintf(f_out,"\tsob\tR%o\t", nn.a);
+		pc -= 2 * nn.val;
+		fprintf(f_out, "%06o\n", pc);
+	}
+	else 
+	{
+		fprintf(f_out,"NO_sob\n");
+	}
 }
 
 void reg_print()
 {
 	int i = 0;
-	for( ; i < 8; i++)
+	for( ; i <= 6; i++)
 	{
-		printf("R%d  %o\n", i, reg[i]); 
+		if(!(i % 2))
+			printf("r%d=%06o ", i, reg[i]); 
 	}
+	printf("\n");
+	for(i = 0; i <= 7; i++)
+	{
+		if(i % 2)
+			printf("r%d=%06o ", i, reg[i]); 
+	}
+	printf("\n");
 }
 
 void test_mem()
