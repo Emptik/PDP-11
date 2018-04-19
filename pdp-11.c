@@ -342,5 +342,5 @@ void test_mem()
 	b_write(4, 0x0c);
 	b_write(5, 0x0d);
 	w = w_read(4);
-	assert(w = 0x0d0c);
+	assert(w == 0x0d0c);
 }
