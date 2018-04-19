@@ -44,6 +44,7 @@ void do_mov();
 void do_add();
 void do_clr();
 void do_sob();
+void do_movb();
 void do_unknown();
 
 struct Operand
@@ -63,6 +64,7 @@ struct Command {
 } command[] = {
 	{0, 0xFFFF, "halt", do_halt, NO_PARAM},
 	{0010000, 0170000, "mov", do_mov, HAS_SS | HAS_DD},
+	{0110000, 0170000, "movb", do_movb, HAS_SS | HAS_DD},
 	{0060000, 0170000, "add", do_add, HAS_SS | HAS_DD},
 	{0077000, 0177000, "sob", do_sob, HAS_NN},
 	{0005000, 0017000, "clr", do_clr, HAS_DD},
@@ -193,8 +195,10 @@ void run(adr pc0)
 struct Operand get_dd(word w)
 {
 	struct Operand res = {0, 0};
-	int rn = w & 7;
-	int mode = (w >> 3) & 7;
+	word rn = w & 7;
+	word mode = (w >> 3) & 7;
+	word by = (w & 0x200)>>9;
+	assert(by == 1 || by == 0);
 	switch(mode)
 	{
 		case 0:
@@ -208,16 +212,32 @@ struct Operand get_dd(word w)
 			fprintf(f_out,"\t\t\tCLR (R%d)", rn);
 			break;
 		case 2:
-			res.a = reg[rn];
-			res.val = w_read(res.a);
-			reg[rn] += 2;
+		{
 			if(rn == 7)
 			{
+				res.a = reg[rn];
+				res.val = w_read(res.a);
+				reg[rn] += 2;
 				fprintf(f_out,"\t#%o ", res.val);
 			}
 			else
+			{
+				if(by == 1)
+				{
+					res.a = reg[rn];
+					res.val = (char)b_read(res.a);
+					reg[rn] += 1;
+				}
+				else if(by == 0)
+				{
+					res.a = reg[rn];
+					res.val = w_read(res.a);
+					reg[rn] += 2;
+				}
 				fprintf(f_out,"\t(R%d)+", rn);
+			}
 			break;
+		}
 		case 3:
 			res.a = reg[rn];
 			reg[rn] += 2;
@@ -226,7 +246,7 @@ struct Operand get_dd(word w)
 			res.val = w_read(res.a);
 			if(rn == 7)
 			{
-				fprintf(f_out,"\t@#%o ", res.val);
+				fprintf(f_out,"\t@#%06o ", res.a);
 			}
 			else
 				fprintf(f_out,"\t@(R%d)+", rn);
@@ -287,6 +307,11 @@ void do_sob()
 	}
 }
 
+void do_movb()
+{
+	reg_write(dd.a, ss.val);
+}
+
 void reg_print()
 {
 	int i = 0;
@@ -304,7 +329,18 @@ void reg_print()
 	printf("\n");
 }
 
-void test_mem()
+void test_mem() 
 {
-	
+	byte b0, b1;
+	word w;
+	w = 0x0d0c;
+	w_write(2, w);
+	b0 = b_read(2);
+	b1 = b_read(3); 
+	assert(b0 == 0x0c);
+	assert(b1 == 0x0d);
+	b_write(4, 0x0c);
+	b_write(5, 0x0d);
+	w = w_read(4);
+	assert(w = 0x0d0c);
 }
