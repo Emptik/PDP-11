@@ -167,7 +167,7 @@ void run(adr pc0)
 		fprintf(f_out,"\n%06o:", pc);
 		fprintf(f_out,"\t%06o\t", w);
 		pc += 2;
-		for(i = 0; i <= 5; i++)
+		for(i = 0; i <= 6; i++)
 		{
 			struct Command cmd = command[i];
 			if((w & cmd.mask) == cmd.opcode)
