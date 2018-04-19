@@ -218,6 +218,19 @@ struct Operand get_dd(word w)
 			else
 				fprintf(f_out,"\t(R%d)+", rn);
 			break;
+		case 3:
+			res.a = reg[rn];
+			reg[rn] += 2;
+			assert(!(res.a % 2));
+			res.a = b_read(res.a);
+			res.val = w_read(res.a);
+			if(rn == 7)
+			{
+				fprintf(f_out,"\t@#%o ", res.val);
+			}
+			else
+				fprintf(f_out,"\t@(R%d)+", rn);
+			break;
 		default:
 			fprintf(f_out,"MODE %d NOT IMPLEMENTED YET!\n", mode);
 			exit(3);
