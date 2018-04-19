@@ -157,12 +157,12 @@ void mem_dump(adr start, word n) {
 void run(adr pc0)
 {
 	pc = (word)pc0;
-	fprintf(f_out,"%06d:\t\t. = %o\n", 0, pc);
+	fprintf(f_out,"%06d:\t\t. = %o", 0, pc);
 	int i = 0;
 	while(1)
 	{
 		word w = w_read(pc);
-		fprintf(f_out,"%06o:", pc);
+		fprintf(f_out,"\n%06o:", pc);
 		fprintf(f_out,"\t%06o\t", w);
 		pc += 2;
 		for(i = 0; i <= 5; i++)
@@ -170,6 +170,7 @@ void run(adr pc0)
 			struct Command cmd = command[i];
 			if((w & cmd.mask) == cmd.opcode)
 			{
+				fprintf(f_out, "\t%s", cmd.name);
 				if(cmd.param & HAS_NN)
 				{
 					nn = get_nn(w);
@@ -235,20 +236,17 @@ struct Operand get_nn(word w)
 void do_halt()
 {
 	reg_print();
-	fprintf(f_out,"HALT\n");
 	fclose(f_out);
 	exit(0);
 }
 
 void do_add() 
 {
-	fprintf(f_out, "\tadd\n");
 	reg_write(dd.a, ss.val + dd.val);
 }
 
 void do_mov() 
 {
-	fprintf(f_out,"\tmov\n");
 	reg_write(dd.a, ss.val);
 }
 
@@ -260,7 +258,6 @@ void do_unknown()
 
 void do_clr()
 {
-	fprintf(f_out,"\tclr\n");
 	reg_write(dd.a, 0);
 }
 
@@ -271,13 +268,9 @@ void do_sob()
 	word w = reg_read(nn.a);
 	if( w != 0)
 	{
-		fprintf(f_out,"\tsob\tR%o\t", nn.a);
 		pc -= 2 * nn.val;
-		fprintf(f_out, "%06o\n", pc);
-	}
-	else 
-	{
-		fprintf(f_out,"NO_sob\n");
+		fprintf(f_out, "\tR%o\t", nn.a);
+		fprintf(f_out, "%06o", pc);
 	}
 }
 
