@@ -7,3 +7,4 @@ file
 /gitrepo
 /pdp11em-linux
 list
+*.o
