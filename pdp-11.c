@@ -20,38 +20,50 @@ typedef unsigned char byte;
 typedef unsigned short int word;
 typedef short adr;
 
-byte mem[64 * 1024];
-word reg[8];
-
 void reg_write(adr a, word val);
 word reg_read(adr a);
-byte b_read  (adr a);					//читает из "старой памяти" mem байт с "адресом" a.
-void b_write (adr a, byte val);	// пишет значение val в "старую память" mem в байт с "адресом" a.
-word w_read  (adr a);					// читает из "старой памяти" mem слово с "адресом" a.
-void w_write (adr a, word val);	// пишет значение val в "старую память" mem в слово с "адресом" a.
+byte b_read  (adr a);
+void b_write (adr a, byte val);
+word w_read  (adr a);
+void w_write (adr a, word val);
 void test_mem();
 
 void load_file(char * file_name);
 void mem_dump(adr start, word n);
-
-struct Operand get_nn(word w);
-struct Operand get_dd(word w);
 void reg_print();
+
+struct Operand get_dd(word w);
+struct Operand get_nn(word w);
+char get_xx(word w);
 
 void run(adr pc0);
 void do_halt();
 void do_mov();
+void do_movb();
 void do_add();
 void do_clr();
 void do_sob();
-void do_movb();
+void do_beq();
+void do_br();
 void do_unknown();
+
+byte mem[64 * 1024];
+word reg[8];
 
 struct Operand
 {
 	adr a;
 	word val;
 } ss , dd, nn;
+char xx;
+
+struct p_s_w
+{
+	byte N;
+	byte Z;
+	byte V;
+	byte C;
+} flag;
 
 FILE * f_out;
 
@@ -66,8 +78,10 @@ struct Command {
 	{0010000, 0170000, "mov", do_mov, HAS_SS | HAS_DD},
 	{0110000, 0170000, "movb", do_movb, HAS_SS | HAS_DD},
 	{0060000, 0170000, "add", do_add, HAS_SS | HAS_DD},
-	{0077000, 0177000, "sob", do_sob, HAS_NN},
 	{0005000, 0017000, "clr", do_clr, HAS_DD},
+	{0077000, 0177000, "sob", do_sob, HAS_NN},
+	{0001400, 0017700, "beq", do_beq, HAS_XX},
+	{0000400 | 0000700, 0001700, "br", do_br, HAS_XX},
 	{0000000, 0000000, "unknown", do_unknown, NO_PARAM}
 };
 
@@ -119,6 +133,22 @@ void b_write(adr a, byte val){
 	mem[a] = val;
 }
 
+void test_mem() 
+{
+	byte b0, b1;
+	word w;
+	w = 0x0d0c;
+	w_write(2, w);
+	b0 = b_read(2);
+	b1 = b_read(3); 
+	assert(b0 == 0x0c);
+	assert(b1 == 0x0d);
+	b_write(4, 0x0c);
+	b_write(5, 0x0d);
+	w = w_read(4);
+	assert(w == 0x0d0c);
+}
+
 void load_file(char * file_name)
 {
 	adr counter = 0;
@@ -156,6 +186,23 @@ void mem_dump(adr start, word n) {
 	}
 }
 
+void reg_print()
+{
+	int i = 0;
+	for( ; i <= 6; i++)
+	{
+		if(!(i % 2))
+			printf("r%d=%06o ", i, reg[i]); 
+	}
+	printf("\n");
+	for(i = 0; i <= 7; i++)
+	{
+		if(i % 2)
+			printf("r%d=%06o ", i, reg[i]); 
+	}
+	printf("\npsw=%o%o%o%o\n", flag.N, flag.Z, flag.V, flag.C);
+}
+
 void run(adr pc0)
 {
 	pc = (word)pc0;
@@ -167,7 +214,7 @@ void run(adr pc0)
 		fprintf(f_out,"\n%06o:", pc);
 		fprintf(f_out,"\t%06o\t", w);
 		pc += 2;
-		for(i = 0; i <= 6; i++)
+		for(i = 0; i <= 9; i++)
 		{
 			struct Command cmd = command[i];
 			if((w & cmd.mask) == cmd.opcode)
@@ -184,6 +231,10 @@ void run(adr pc0)
 				if(cmd.param & HAS_DD)
 				{
 					dd = get_dd(w);
+				}
+				if(cmd.param & HAS_XX)
+				{
+					xx = get_xx(w);
 				}
 				cmd.func();
 				break;
@@ -266,6 +317,12 @@ struct Operand get_nn(word w)
 	return res;
 }
 
+char get_xx(word w)
+{
+	char help = (char)w;
+	return help;
+}
+
 void do_halt()
 {
 	reg_print();
@@ -273,20 +330,34 @@ void do_halt()
 	exit(0);
 }
 
-void do_add() 
-{
-	reg_write(dd.a, ss.val + dd.val);
-}
-
 void do_mov() 
 {
 	reg_write(dd.a, ss.val);
+	if(reg_read(dd.a) == 0)
+	{
+		if(!flag.Z) flag.Z++;
+		else flag.Z--;
+	}
 }
 
-void do_unknown()
+void do_movb()
 {
-	printf("UNKNOWN!\n");
-	exit(2);
+	reg_write(dd.a, ss.val);
+	if(reg_read(dd.a) == 0)
+	{
+		if(!flag.Z) flag.Z++;
+		else flag.Z--;
+	}
+}
+
+void do_add() 
+{
+	reg_write(dd.a, ss.val + dd.val);
+	if(reg_read(dd.a) == 0)
+	{
+		if(!flag.Z) flag.Z++;
+		else flag.Z--;
+	}
 }
 
 void do_clr()
@@ -307,40 +378,20 @@ void do_sob()
 	}
 }
 
-void do_movb()
+void do_beq()
 {
-	reg_write(dd.a, ss.val);
+	assert(flag.Z == 1 || flag.Z == 0);
+	if(flag.Z == 1) do_br();
 }
 
-void reg_print()
+void do_br()
 {
-	int i = 0;
-	for( ; i <= 6; i++)
-	{
-		if(!(i % 2))
-			printf("r%d=%06o ", i, reg[i]); 
-	}
-	printf("\n");
-	for(i = 0; i <= 7; i++)
-	{
-		if(i % 2)
-			printf("r%d=%06o ", i, reg[i]); 
-	}
-	printf("\n");
+	pc += 2 * xx;
+	fprintf(f_out,"\t%06o", pc);
 }
 
-void test_mem() 
+void do_unknown()
 {
-	byte b0, b1;
-	word w;
-	w = 0x0d0c;
-	w_write(2, w);
-	b0 = b_read(2);
-	b1 = b_read(3); 
-	assert(b0 == 0x0c);
-	assert(b1 == 0x0d);
-	b_write(4, 0x0c);
-	b_write(5, 0x0d);
-	w = w_read(4);
-	assert(w == 0x0d0c);
+	printf("UNKNOWN!\n");
+	exit(2);
 }
