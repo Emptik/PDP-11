@@ -226,7 +226,7 @@ void run(adr pc0)
 		fprintf(stderr,"\n%06o:", pc);
 		fprintf(stderr,"\t%06o\t", w);
 		pc += 2;
-		for(i = 0; i < 11; i++)
+		for(i = 0; ; i++)
 		{
 			struct Command cmd = command[i];
 			if((w & cmd.mask) == cmd.opcode)
