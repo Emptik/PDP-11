@@ -36,6 +36,9 @@ struct Operand get_dd(word w);
 struct Operand get_nn(word w);
 char get_xx(word w);
 
+void SE(byte * x);
+void CL(byte * x);
+
 void run(adr pc0);
 void do_halt();
 void do_mov();
@@ -45,6 +48,8 @@ void do_clr();
 void do_sob();
 void do_beq();
 void do_br();
+void do_tstb();
+void do_bpl();
 void do_unknown();
 
 byte mem[64 * 1024];
@@ -52,18 +57,19 @@ word reg[8];
 
 struct Operand
 {
-	adr a;
+	word a;
 	word val;
 } ss , dd, nn;
 char xx;
 
-struct p_s_w
+struct psw
 {
 	byte N;
 	byte Z;
 	byte V;
 	byte C;
 } flag;
+
 
 FILE * f_out;
 
@@ -78,9 +84,11 @@ struct Command {
 	{0010000, 0170000, "mov", do_mov, HAS_SS | HAS_DD},
 	{0110000, 0170000, "movb", do_movb, HAS_SS | HAS_DD},
 	{0060000, 0170000, "add", do_add, HAS_SS | HAS_DD},
-	{0005000, 0017000, "clr", do_clr, HAS_DD},
+	{0005000, 0017700, "clr", do_clr, HAS_DD},
 	{0077000, 0177000, "sob", do_sob, HAS_NN},
 	{0001400, 0017700, "beq", do_beq, HAS_XX},
+	{0005700, 0017700, "tstb", do_tstb, HAS_DD},
+	{0100000, 0170000, "bpl", do_bpl, HAS_XX},
 	{0000400 | 0000700, 0001700, "br", do_br, HAS_XX},
 	{0000000, 0000000, "unknown", do_unknown, NO_PARAM}
 };
@@ -214,7 +222,7 @@ void run(adr pc0)
 		fprintf(f_out,"\n%06o:", pc);
 		fprintf(f_out,"\t%06o\t", w);
 		pc += 2;
-		for(i = 0; i <= 8; i++)
+		for(i = 0; i <= 9; i++)
 		{
 			struct Command cmd = command[i];
 			if((w & cmd.mask) == cmd.opcode)
@@ -291,16 +299,41 @@ struct Operand get_dd(word w)
 		}
 		case 3:
 			res.a = reg[rn];
-			reg[rn] += 2;
-			assert(!(res.a % 2));
-			res.a = b_read(res.a);
-			res.val = w_read(res.a);
 			if(rn == 7)
 			{
 				fprintf(f_out,"\t@#%06o ", res.a);
 			}
 			else
-				fprintf(f_out,"\t@(R%d)+", rn);
+			fprintf(f_out,"\t@(R%d)+", rn);
+			reg[rn] += 2;
+			assert(!(res.a % 2));
+			res.a = w_read(res.a);
+			res.val = w_read(res.a);
+			break;
+		case 4:
+			if(rn == 7)
+			{
+				reg[rn] -= 2;
+				res.a = reg[rn];
+				res.val = w_read(res.a);
+				fprintf(f_out,"\t-(pc)");
+			}
+			else
+			{
+				if(by == 1)
+				{
+					reg[rn] -= 1;
+					res.a = reg[rn];
+					res.val = (char)b_read(res.a);
+				}
+				else if(by == 0)
+				{
+					reg[rn] -= 2;
+					res.a = reg[rn];
+					res.val = w_read(res.a);
+				}
+				fprintf(f_out,"\t(R%d)-", rn);
+			}
 			break;
 		default:
 			fprintf(f_out,"MODE %d NOT IMPLEMENTED YET!\n", mode);
@@ -319,8 +352,17 @@ struct Operand get_nn(word w)
 
 char get_xx(word w)
 {
-	char help = (char)w;
-	return help;
+	return (char)w;
+}
+
+void CL(byte * x)
+{
+	*(x) = 0;
+}
+
+void SE(byte * x)
+{
+	*(x) = 1;
 }
 
 void do_halt()
@@ -332,31 +374,67 @@ void do_halt()
 
 void do_mov() 
 {
-	reg_write(dd.a, ss.val);
-	if(reg_read(dd.a) == 0)
+	if(dd.a <= 7)
 	{
-		if(!flag.Z) flag.Z++;
-		else flag.Z--;
+		reg[dd.a] = ss.val;
+		if(reg_read(dd.a) == 0)
+		{
+			if(!flag.Z) SE(&flag.Z);
+			else CL(&flag.Z);
+		}
+	}
+	else
+	{
+		w_write(dd.a, ss.val);
+		if(w_read(dd.a) == 0)
+		{
+			if(!flag.Z) SE(&flag.Z);
+			else CL(&flag.Z);
+		}
 	}
 }
 
 void do_movb()
 {
-	reg_write(dd.a, ss.val);
-	if(reg_read(dd.a) == 0)
+	if(dd.a <= 7)
 	{
-		if(!flag.Z) flag.Z++;
-		else flag.Z--;
+		reg[dd.a] = ss.val;
+		if(reg_read(dd.a) == 0)
+		{
+			if(!flag.Z) SE(&flag.Z);
+			else CL(&flag.Z);
+		}
+	}
+	else
+	{
+		w_write(dd.a, ss.val);
+		if(w_read(dd.a) == 0)
+		{
+			if(!flag.Z) SE(&flag.Z);
+			else CL(&flag.Z);
+		}
 	}
 }
 
 void do_add() 
 {
-	reg_write(dd.a, ss.val + dd.val);
-	if(reg_read(dd.a) == 0)
+	if(dd.a <= 7)
 	{
-		if(!flag.Z) flag.Z++;
-		else flag.Z--;
+		reg[dd.a] = ss.val + dd.val;
+		if(reg_read(dd.a) == 0)
+		{
+			if(!flag.Z) SE(&flag.Z);
+			else CL(&flag.Z);
+		}
+	}
+	else
+	{
+		w_write(dd.a, ss.val + dd.val);
+		if(w_read(dd.a) == 0)
+		{
+			if(!flag.Z) SE(&flag.Z);
+			else CL(&flag.Z);
+		}
 	}
 }
 
@@ -388,6 +466,33 @@ void do_br()
 {
 	pc += 2 * xx;
 	fprintf(f_out,"\t%06o", pc);
+}
+
+void do_tstb()
+{
+	if(dd.val >= 0)
+	{
+		CL(&flag.N);
+	}
+	else if(dd.val < 0)
+	{
+		SE(&flag.N);
+	}
+	if(dd.val == 0)
+	{
+		SE(&flag.Z);
+	}
+	else if(dd.val != 0)
+	{
+		CL(&flag.Z);
+	}
+	CL(&flag.C);
+	CL(&flag.V);
+}
+
+void do_bpl()
+{
+	if(!flag.N == 0) do_br();
 }
 
 void do_unknown()
