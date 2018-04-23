@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
+#include <string.h>
 
 #define _CHECK( x , y ) if ( (x) == EOF)\
 {\
@@ -15,6 +16,7 @@ break;\
 #define HAS_XX 8
 #define pc reg[7]
 #define sp reg[6]
+#define prn fprintf(stderr, "%d %s\n", __LINE__, __FUNCTION__)
 
 typedef unsigned char byte;
 typedef unsigned short int word;
@@ -86,15 +88,16 @@ struct Command {
 	{0060000, 0170000, "add", do_add, HAS_SS | HAS_DD},
 	{0005000, 0017700, "clr", do_clr, HAS_DD},
 	{0077000, 0177000, "sob", do_sob, HAS_NN},
-	{0001400, 0017700, "beq", do_beq, HAS_XX},
+	{0001400, 0xFF00, "beq", do_beq, HAS_XX},
 	{0005700, 0017700, "tstb", do_tstb, HAS_DD},
-	{0100000, 0170000, "bpl", do_bpl, HAS_XX},
-	{0000400 | 0000700, 0001700, "br", do_br, HAS_XX},
+	{0100000, 0xFF00, "bpl", do_bpl, HAS_XX},
+	{0000400, 0XFF00, "br", do_br, HAS_XX},
 	{0000000, 0000000, "unknown", do_unknown, NO_PARAM}
 };
 
 int main(int argc, char **argv) 
 {
+	mem[65396] = -1;
 	test_mem();
 	load_file(argv[1]);
 	f_out = fopen("list", "w");
@@ -197,6 +200,7 @@ void mem_dump(adr start, word n) {
 void reg_print()
 {
 	int i = 0;
+	printf("\n");
 	for( ; i <= 6; i++)
 	{
 		if(!(i % 2))
@@ -214,20 +218,20 @@ void reg_print()
 void run(adr pc0)
 {
 	pc = (word)pc0;
-	fprintf(f_out,"%06d:\t\t. = %o", 0, pc);
+	fprintf(stderr,"%06d:\t\t. = %o", 0, pc);
 	int i = 0;
 	while(1)
 	{
 		word w = w_read(pc);
-		fprintf(f_out,"\n%06o:", pc);
-		fprintf(f_out,"\t%06o\t", w);
+		fprintf(stderr,"\n%06o:", pc);
+		fprintf(stderr,"\t%06o\t", w);
 		pc += 2;
-		for(i = 0; i <= 9; i++)
+		for(i = 0; i < 11; i++)
 		{
 			struct Command cmd = command[i];
 			if((w & cmd.mask) == cmd.opcode)
 			{
-				fprintf(f_out, "\t%s", cmd.name);
+				fprintf(stderr, "\t%s", cmd.name);
 				if(cmd.param & HAS_NN)
 				{
 					nn = get_nn(w);
@@ -244,7 +248,8 @@ void run(adr pc0)
 				{
 					xx = get_xx(w);
 				}
-				cmd.func();
+				if(!strcmp(cmd.name,"bpl")) do_bpl();
+				else cmd.func();
 				break;
 			}
 		}
@@ -263,12 +268,12 @@ struct Operand get_dd(word w)
 		case 0:
 			res.a = rn;
 			res.val = reg[rn];
-			fprintf(f_out,"\tR%d", rn);
+			fprintf(stderr,"\tR%d", rn);
 			break;
 		case 1:
 			res.a = reg[rn];
 			res.val = w_read(res.a);
-			fprintf(f_out,"\t\t\tCLR (R%d)", rn);
+			fprintf(stderr,"\t\t\tCLR (R%d)", rn);
 			break;
 		case 2:
 		{
@@ -277,7 +282,7 @@ struct Operand get_dd(word w)
 				res.a = reg[rn];
 				res.val = w_read(res.a);
 				reg[rn] += 2;
-				fprintf(f_out,"\t#%o ", res.val);
+				fprintf(stderr,"\t#%o ", res.val);
 			}
 			else
 			{
@@ -293,22 +298,36 @@ struct Operand get_dd(word w)
 					res.val = w_read(res.a);
 					reg[rn] += 2;
 				}
-				fprintf(f_out,"\t(R%d)+", rn);
+				fprintf(stderr,"\t(R%d)+", rn);
 			}
 			break;
 		}
 		case 3:
 			res.a = reg[rn];
-			if(rn == 7)
-			{
-				fprintf(f_out,"\t@#%06o ", res.a);
-			}
-			else
-			fprintf(f_out,"\t@(R%d)+", rn);
 			reg[rn] += 2;
 			assert(!(res.a % 2));
 			res.a = w_read(res.a);
 			res.val = w_read(res.a);
+			if(rn == 7)
+			{
+				if(res.a != 65398)
+					fprintf(stderr,"\t@#%06o ", res.a);
+				else
+				{
+					if(ss.a >= 8)
+					{
+						fprintf(stderr, "\t%c", mem[ss.a]);
+						fprintf(f_out, "%c", mem[ss.a]);
+					}
+					else if(ss.a <= 7 && ss.a >= 0)
+					{
+						fprintf(stderr, "\t%c", reg[ss.a]);
+						fprintf(f_out, "%c", reg[ss.a]);
+					}
+					else assert(0);
+				}
+			}
+			else fprintf(stderr,"\t@(R%d)+", rn);
 			break;
 		case 4:
 			if(rn == 7)
@@ -440,7 +459,8 @@ void do_add()
 
 void do_clr()
 {
-	reg_write(dd.a, 0);
+	if(dd.a <= 7) reg_write(dd.a, 0);
+	else w_write(dd.a, 0);
 }
 
 void do_sob()
@@ -459,18 +479,17 @@ void do_sob()
 void do_beq()
 {
 	assert(flag.Z == 1 || flag.Z == 0);
-	if(flag.Z == 1) do_br();
+	if(flag.Z) do_br();
 }
 
 void do_br()
 {
 	pc += 2 * xx;
-	fprintf(f_out,"\t%06o", pc);
 }
 
 void do_tstb()
 {
-	if(dd.val >= 0)
+	if(dd.val > 0)
 	{
 		CL(&flag.N);
 	}
@@ -492,7 +511,7 @@ void do_tstb()
 
 void do_bpl()
 {
-	if(!flag.N == 0) do_br();
+	if(flag.N) do_br();
 }
 
 void do_unknown()
