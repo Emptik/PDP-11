@@ -17,6 +17,8 @@ break;\
 #define pc reg[7]
 #define sp reg[6]
 #define prn fprintf(stderr, "%d %s\n", __LINE__, __FUNCTION__)
+#define ostat 65396
+#define odata 65398
 
 typedef unsigned char byte;
 typedef unsigned short int word;
@@ -24,10 +26,10 @@ typedef short adr;
 
 void reg_write(adr a, word val);
 word reg_read(adr a);
-byte b_read  (adr a);
-void b_write (adr a, byte val);
-word w_read  (adr a);
-void w_write (adr a, word val);
+byte b_read(adr a);
+void b_write(adr a, byte val);
+word w_read(adr a);
+void w_write(adr a, word val);
 void test_mem();
 
 void load_file(char * file_name);
@@ -97,7 +99,7 @@ struct Command {
 
 int main(int argc, char **argv) 
 {
-	mem[65396] = -1;
+	mem[ostat] = -1;
 	test_mem();
 	load_file(argv[1]);
 	f_out = fopen("list", "w");
@@ -310,7 +312,7 @@ struct Operand get_dd(word w)
 			res.val = w_read(res.a);
 			if(rn == 7)
 			{
-				if(res.a != 65398)
+				if(res.a != odata)
 					fprintf(stderr,"\t@#%06o ", res.a);
 				else
 				{
