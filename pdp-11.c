@@ -487,6 +487,7 @@ void do_beq()
 void do_br()
 {
 	pc += 2 * xx;
+	fprintf(stderr, "\t%o", pc);
 }
 
 void do_tstb()
