@@ -348,7 +348,7 @@ struct Operand get_dd(word w)
 				reg[rn] -= 2;
 				res.a = reg[rn];
 				res.val = w_read(res.a);
-				fprintf(f_out,"\t-(pc)");
+				fprintf(stderr,"\t-(pc)");
 			}
 			else
 			{
@@ -574,6 +574,7 @@ void do_rts()
 	pc = reg_read(r);
 	reg_write(r, stack.arr[stack.size-1]);
 	stack.size--;
+	fprintf(stderr,"\t%06o", pc);
 }
 
 void do_unknown()
