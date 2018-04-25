@@ -17,8 +17,8 @@ break;\
 #define pc reg[7]
 #define sp reg[6]
 #define prn fprintf(stderr, "%d %s\n", __LINE__, __FUNCTION__)
-#define ostat 65396
-#define odata 65398
+#define ostat 0177564
+#define odata 0177566
 
 typedef unsigned char byte;
 typedef unsigned short int word;
@@ -114,13 +114,21 @@ int main(int argc, char **argv)
 
 void reg_write(adr a, word val)
 {
-	assert(a <= 7 && a >= 0);
+	if(!(a <= 7 && a >= 0))
+	{
+		fprintf(stderr,"\nadr is to big. It is : %o\n", a);
+		abort();
+	}
 	reg[a] = val;
 }
 
 word reg_read(adr a)
 {
-	assert(a <= 7 && a >= 0);
+	if(!(a <= 7 && a >= 0))
+	{
+		fprintf(stderr,"\nadr is to big. It is : %o\n", a);
+		abort();
+	}
 	return reg[a];
 }
 
@@ -311,24 +319,7 @@ struct Operand get_dd(word w)
 			res.a = w_read(res.a);
 			res.val = w_read(res.a);
 			if(rn == 7)
-			{
-				if(res.a != odata)
-					fprintf(stderr,"\t@#%06o ", res.a);
-				else
-				{
-					if(ss.a >= 8)
-					{
-						fprintf(stderr, "\t%c", mem[ss.a]);
-						fprintf(f_out, "%c", mem[ss.a]);
-					}
-					else if(ss.a <= 7 && ss.a >= 0)
-					{
-						fprintf(stderr, "\t%c", reg[ss.a]);
-						fprintf(f_out, "%c", reg[ss.a]);
-					}
-					else assert(0);
-				}
-			}
+				fprintf(stderr,"\t@#%06o ", res.a);
 			else fprintf(stderr,"\t@(R%d)+", rn);
 			break;
 		case 4:
@@ -353,9 +344,18 @@ struct Operand get_dd(word w)
 					res.a = reg[rn];
 					res.val = w_read(res.a);
 				}
-				fprintf(f_out,"\t(R%d)-", rn);
+				fprintf(stderr,"\t(R%d)-", rn);
 			}
 			break;
+		case 6:
+		{
+			pc += 2;
+			res.a =  reg_read(rn) + w_read(pc-2);
+			res.val = w_read(res.a);
+			if( rn != 7) fprintf(stderr, "\t%06o(R%o)", w_read(pc-2), rn);
+			else fprintf (stderr, "\t#%06o", w_read(pc-2) + pc);
+			break;
+		}
 		default:
 			fprintf(f_out,"MODE %d NOT IMPLEMENTED YET!\n", mode);
 			exit(3);
@@ -417,6 +417,10 @@ void do_mov()
 
 void do_movb()
 {
+	if(dd.a == odata)
+	{
+		fprintf(f_out, "%c", ss.val);
+	}
 	if(dd.a <= 7)
 	{
 		reg[dd.a] = ss.val;
