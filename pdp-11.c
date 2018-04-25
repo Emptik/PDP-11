@@ -39,6 +39,7 @@ void reg_print();
 struct Operand get_dd(word w);
 struct Operand get_nn(word w);
 char get_xx(word w);
+void r_mean(char * model, word w);
 
 void SE(byte * x);
 void CL(byte * x);
@@ -54,10 +55,15 @@ void do_beq();
 void do_br();
 void do_tstb();
 void do_bpl();
+void do_jsr();
+void do_rts();
 void do_unknown();
 
 byte mem[64 * 1024];
 word reg[8];
+
+word r;
+word help;
 
 struct Operand
 {
@@ -74,6 +80,11 @@ struct psw
 	byte C;
 } flag;
 
+struct STA
+{
+	word arr[1000];
+	word size;
+} stack = {{0}, 1};
 
 FILE * f_out;
 
@@ -94,6 +105,8 @@ struct Command {
 	{0005700, 0017700, "tstb", do_tstb, HAS_DD},
 	{0100000, 0xFF00, "bpl", do_bpl, HAS_XX},
 	{0000400, 0XFF00, "br", do_br, HAS_XX},
+	{0004000, 0174000, "jsr", do_jsr, HAS_DD},
+	{0000200, 0177270, "rts", do_rts, NO_PARAM},
 	{0000000, 0000000, "unknown", do_unknown, NO_PARAM}
 };
 
@@ -242,6 +255,7 @@ void run(adr pc0)
 			if((w & cmd.mask) == cmd.opcode)
 			{
 				fprintf(stderr, "\t%s", cmd.name);
+				r_mean(cmd.name, w);
 				if(cmd.param & HAS_NN)
 				{
 					nn = get_nn(w);
@@ -258,7 +272,13 @@ void run(adr pc0)
 				{
 					xx = get_xx(w);
 				}
-				if(!strcmp(cmd.name,"bpl")) do_bpl();
+				if(!strcmp(cmd.name,"bpl") || !strcmp(cmd.name,"jsr")) 
+				{
+					if(!strcmp(cmd.name,"bpl"))
+						do_bpl();
+					else
+						do_jsr();
+				}
 				else cmd.func();
 				break;
 			}
@@ -376,6 +396,18 @@ char get_xx(word w)
 	return (char)w;
 }
 
+void r_mean(char * model, word w)
+{
+	if(!strcmp(model,"jsr"))
+	{
+		r = (w>>6)&7;
+	}
+	else if(!strcmp(model, "rts"))
+	{
+		r = w&7;
+	}
+}
+
 void CL(byte * x)
 {
 	*(x) = 0;
@@ -439,6 +471,10 @@ void do_movb()
 			else CL(&flag.Z);
 		}
 	}
+	if(flag.Z)
+	{
+		help = 1;
+	}
 }
 
 void do_add() 
@@ -484,6 +520,10 @@ void do_sob()
 
 void do_beq()
 {
+	if(help)
+	{
+		//printf("\t%o", flag.Z);
+	}
 	assert(flag.Z == 1 || flag.Z == 0);
 	if(flag.Z) do_br();
 }
@@ -519,6 +559,21 @@ void do_tstb()
 void do_bpl()
 {
 	if(flag.N) do_br();
+}
+
+void do_jsr()
+{
+	stack.arr[stack.size] = pc;
+	reg_write(r, pc);
+	pc = dd.a;
+	stack.size++;
+}
+
+void do_rts()
+{
+	pc = reg_read(r);
+	reg_write(r, stack.arr[stack.size-1]);
+	stack.size--;
 }
 
 void do_unknown()
