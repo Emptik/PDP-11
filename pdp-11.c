@@ -53,10 +53,12 @@ void do_clr();
 void do_sob();
 void do_beq();
 void do_br();
-void do_tstb();
+void do_tst();
 void do_bpl();
 void do_jsr();
 void do_rts();
+void do_dec();
+void do_mul();
 void do_unknown();
 
 byte mem[64 * 1024];
@@ -102,11 +104,14 @@ struct Command {
 	{0005000, 0017700, "clr", do_clr, HAS_DD},
 	{0077000, 0177000, "sob", do_sob, HAS_NN},
 	{0001400, 0xFF00, "beq", do_beq, HAS_XX},
-	{0005700, 0017700, "tstb", do_tstb, HAS_DD},
+	{0005700, 0177700, "tst", do_tst, HAS_DD},
+	{0105700, 0177700, "tstb",do_tst, HAS_DD},
 	{0100000, 0xFF00, "bpl", do_bpl, HAS_XX},
 	{0000400, 0XFF00, "br", do_br, HAS_XX},
-	{0004000, 0174000, "jsr", do_jsr, HAS_DD},
-	{0000200, 0177270, "rts", do_rts, NO_PARAM},
+	{0004000, 0177000, "jsr", do_jsr, HAS_DD},
+	{0000200, 0177700, "rts", do_rts, NO_PARAM},
+	{0005300, 0077700, "dec", do_dec, HAS_DD},
+	{0070000, 0177000, "mul", do_mul, HAS_DD},
 	{0000000, 0000000, "unknown", do_unknown, NO_PARAM}
 };
 
@@ -187,9 +192,9 @@ void load_file(char * file_name)
 {
 	adr counter = 0;
 	adr check = 0;
-	unsigned int  val = 0;
-	unsigned int  num = 0;
-	unsigned int  a = 0;
+	unsigned int val = 0;
+	unsigned int num = 0;
+	unsigned int a = 0;
 	FILE * f_in = NULL;
 	f_in = fopen(file_name, "r");
 	if(!f_in) {
@@ -312,7 +317,7 @@ struct Operand get_dd(word w)
 				res.a = reg[rn];
 				res.val = w_read(res.a);
 				reg[rn] += 2;
-				fprintf(stderr,"\t#%o ", res.val);
+				fprintf(stderr,"\t#%06o ", res.val);
 			}
 			else
 			{
@@ -373,7 +378,7 @@ struct Operand get_dd(word w)
 			res.a =  reg_read(rn) + w_read(pc-2);
 			res.val = w_read(res.a);
 			if( rn != 7) fprintf(stderr, "\t%06o(R%o)", w_read(pc-2), rn);
-			else fprintf (stderr, "\t#%06o", w_read(pc-2) + pc);
+			else fprintf (stderr, "\t#%06o", res.a);
 			break;
 		}
 		default:
@@ -398,7 +403,7 @@ char get_xx(word w)
 
 void r_mean(char * model, word w)
 {
-	if(!strcmp(model,"jsr"))
+	if(!strcmp(model,"jsr") || !strcmp(model, "mul"))
 	{
 		r = (w>>6)&7;
 	}
@@ -501,6 +506,7 @@ void do_add()
 
 void do_clr()
 {
+	SE(&flag.Z);
 	if(dd.a <= 7) reg_write(dd.a, 0);
 	else w_write(dd.a, 0);
 }
@@ -520,10 +526,6 @@ void do_sob()
 
 void do_beq()
 {
-	if(help)
-	{
-		//printf("\t%o", flag.Z);
-	}
 	assert(flag.Z == 1 || flag.Z == 0);
 	if(flag.Z) do_br();
 }
@@ -534,7 +536,7 @@ void do_br()
 	fprintf(stderr, "\t%o", pc);
 }
 
-void do_tstb()
+void do_tst()
 {
 	if(dd.val > 0)
 	{
@@ -577,8 +579,62 @@ void do_rts()
 	fprintf(stderr,"\t%06o", pc);
 }
 
+void do_dec()
+{
+	if(dd.a <= 7)
+	{
+		reg_write(dd.a, dd.val - 1);
+		if(reg_read(dd.a) < 0)
+		{
+			SE(&flag.N);
+			CL(&flag.Z);
+		}
+		else if(reg_read(dd.a) > 0)
+		{
+			CL(&flag.N);
+			CL(&flag.Z);
+		}
+		else if(reg_read(dd.a) == 0)
+			SE(&flag.Z);
+	}
+	else
+	{
+		w_write(dd.a, dd.val - 1);
+		if(w_read(dd.a) < 0)
+		{
+			SE(&flag.N);
+			CL(&flag.Z);
+		}
+		else if(w_read(dd.a) > 0)
+		{
+			CL(&flag.N);
+			CL(&flag.Z);
+		}
+		else if(w_read(dd.a) == 0)
+			SE(&flag.Z);
+	}
+}
+
+void do_mul()
+{
+	fprintf(stderr, "\tR%o", r);
+	reg_write(r, reg_read(r) * dd.val);
+	if(reg_read(r) < 0)
+	{
+		SE(&flag.N);
+		CL(&flag.Z);
+	}
+	else if(reg_read(r) > 0)
+	{
+		CL(&flag.N);
+		CL(&flag.Z);
+	}
+	else if(reg_read(dd.a) == 0)
+		SE(&flag.Z);
+}
+
 void do_unknown()
 {
-	printf("UNKNOWN!\n");
+	fprintf(stderr, "\n");
 	exit(2);
 }
