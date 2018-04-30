@@ -19,10 +19,26 @@ break;\
 #define prn fprintf(stderr, "%d %s\n", __LINE__, __FUNCTION__)
 #define ostat 0177564
 #define odata 0177566
+#define N_and_Z(A) if((A) > 0)\
+	{\
+		CL(&flag.N);\
+	}\
+	else if((A) < 0)\
+	{\
+		SE(&flag.N);\
+	}\
+	if((A) == 0)\
+	{\
+		SE(&flag.Z);\
+	}\
+	else if((A) != 0)\
+	{\
+		CL(&flag.Z);\
+	}
 
 typedef unsigned char byte;
 typedef unsigned short int word;
-typedef short adr;
+typedef unsigned short adr;
 
 void reg_write(adr a, word val);
 word reg_read(adr a);
@@ -129,7 +145,7 @@ struct Command {
 
 int main(int argc, char **argv) 
 {
-	mem[ostat] = -1;
+	mem[ostat] = 0xFF;
 	test_mem();
 	load_file(argv[1]);
 	f_out = fopen("list", "w");
@@ -202,8 +218,8 @@ void test_mem()
 
 void load_file(char * file_name)
 {
-	adr counter = 0;
-	adr check = 0;
+	short counter = 0;
+	short check = 0;
 	unsigned int val = 0;
 	unsigned int num = 0;
 	unsigned int a = 0;
@@ -289,14 +305,7 @@ void run(adr pc0)
 				{
 					xx = get_xx(w);
 				}
-				if(!strcmp(cmd.name,"bpl") || !strcmp(cmd.name,"jsr")) 
-				{
-					if(!strcmp(cmd.name,"bpl"))
-						do_bpl();
-					else
-						do_jsr();
-				}
-				else cmd.func();
+				cmd.func();
 				break;
 			}
 		}
@@ -353,8 +362,16 @@ struct Operand get_dd(word w)
 			res.a = reg[rn];
 			reg[rn] += 2;
 			assert(!(res.a % 2));
-			res.a = w_read(res.a);
-			res.val = w_read(res.a);
+			if(!by)
+			{
+				res.a = w_read(res.a);
+				res.val = w_read(res.a);
+			}
+			if(by)
+			{
+				res.a = w_read(res.a);
+				res.val = b_read(res.a);
+			}
 			if(rn == 7)
 				fprintf(stderr,"\t@#%06o ", res.a);
 			else fprintf(stderr,"\t@(R%d)+", rn);
