@@ -59,6 +59,12 @@ void do_jsr();
 void do_rts();
 void do_dec();
 void do_mul();
+void do_div();
+void do_inc();
+void do_sub();
+void do_bne();
+void do_cmp();
+void do_jmp();
 void do_unknown();
 
 byte mem[64 * 1024];
@@ -112,6 +118,12 @@ struct Command {
 	{0000200, 0177700, "rts", do_rts, NO_PARAM},
 	{0005300, 0077700, "dec", do_dec, HAS_DD},
 	{0070000, 0177000, "mul", do_mul, HAS_DD},
+	{0071000, 0177000, "div", do_div, HAS_DD},
+	{0005200, 0077700, "inc", do_inc, HAS_DD},
+	{0160000, 0170000, "sub", do_sub, HAS_SS | HAS_DD},
+	{0001000, 0177000, "bne", do_bne, HAS_XX},
+	{0020000, 0070000, "cmp", do_cmp, HAS_DD || HAS_SS},
+	{0000100, 0177700, "jmp", do_jmp, HAS_DD},
 	{0000000, 0000000, "unknown", do_unknown, NO_PARAM}
 };
 
@@ -308,7 +320,7 @@ struct Operand get_dd(word w)
 		case 1:
 			res.a = reg[rn];
 			res.val = w_read(res.a);
-			fprintf(stderr,"\t\t\tCLR (R%d)", rn);
+			fprintf(stderr,"\tCLR (R%d)", rn);
 			break;
 		case 2:
 		{
@@ -403,7 +415,7 @@ char get_xx(word w)
 
 void r_mean(char * model, word w)
 {
-	if(!strcmp(model,"jsr") || !strcmp(model, "mul"))
+	if(!strcmp(model,"jsr") || !strcmp(model,"mul") || !strcmp(model,"div"))
 	{
 		r = (w>>6)&7;
 	}
@@ -629,8 +641,126 @@ void do_mul()
 		CL(&flag.N);
 		CL(&flag.Z);
 	}
-	else if(reg_read(dd.a) == 0)
+	else if(reg_read(r) == 0)
 		SE(&flag.Z);
+}
+
+void do_div()
+{
+	fprintf(stderr, "\tR%o", r);
+	reg_write(r, reg_read(r) / dd.val);
+	if(reg_read(r) < 0)
+	{
+		SE(&flag.N);
+		CL(&flag.Z);
+	}
+	else if(reg_read(r) > 0)
+	{
+		CL(&flag.N);
+		CL(&flag.Z);
+	}
+	else if(reg_read(r) == 0)
+		SE(&flag.Z);
+}
+
+void do_inc()
+{
+	if(dd.a <= 7)
+	{
+		reg_write(dd.a, dd.val + 1);
+		if(reg_read(dd.a) < 0)
+		{
+			SE(&flag.N);
+			CL(&flag.Z);
+		}
+		else if(reg_read(dd.a) > 0)
+		{
+			CL(&flag.N);
+			CL(&flag.Z);
+		}
+		else if(reg_read(dd.a) == 0)
+			SE(&flag.Z);
+	}
+	else
+	{
+		w_write(dd.a, dd.val+1);
+		if(w_read(dd.a) < 0)
+		{
+			SE(&flag.N);
+			CL(&flag.Z);
+		}
+		else if(w_read(dd.a) > 0)
+		{
+			CL(&flag.N);
+			CL(&flag.Z);
+		}
+		else if(w_read(dd.a) == 0)
+			SE(&flag.Z);
+	}
+}
+
+void do_bne()
+{
+	if(!flag.Z)
+		do_br();
+}
+
+void do_sub()
+{
+	if(dd.a <= 7)
+	{
+		reg_write(dd.a, dd.val - ss.val);
+		if(reg_read(dd.a) < 0)
+		{
+			SE(&flag.N);
+			CL(&flag.Z);
+		}
+		else if(reg_read(dd.a) > 0)
+		{
+			CL(&flag.N);
+			CL(&flag.Z);
+		}
+		else if(reg_read(dd.a) == 0)
+			SE(&flag.Z);
+	}
+	else
+	{
+		w_write(dd.a, dd.val - ss.val);
+		if(w_read(dd.a) < 0)
+		{
+			SE(&flag.N);
+			CL(&flag.Z);
+		}
+		else if(w_read(dd.a) > 0)
+		{
+			CL(&flag.N);
+			CL(&flag.Z);
+		}
+		else if(w_read(dd.a) == 0)
+			SE(&flag.Z);
+	}
+}
+
+void do_cmp()
+{
+	int k = dd.val - ss.val;
+	if(k < 0)
+	{
+		SE(&flag.N);
+		CL(&flag.Z);
+	}
+	else if(k > 0)
+	{
+		CL(&flag.N);
+		CL(&flag.Z);
+	}
+	else if(k == 0)
+		SE(&flag.Z);
+}
+
+void do_jmp()
+{
+	pc = dd.val;
 }
 
 void do_unknown()
