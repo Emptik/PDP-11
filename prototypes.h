@@ -84,8 +84,6 @@ void do_cmp();
 void do_jmp();
 void do_unknown();
 
-FILE * f_out;
-
 struct Operand
 {
 	word a;

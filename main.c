@@ -1,5 +1,6 @@
 #include "prototypes.h"
 
+FILE * f_out;
 byte mem[64 * 1024];
 word reg[8];
 word r;
