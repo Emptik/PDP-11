@@ -19,7 +19,7 @@ break;\
 #define prn fprintf(stderr, "%d %s\n", __LINE__, __FUNCTION__)
 #define ostat 0177564
 #define odata 0177566
-#define N_and_Z(A) if((A) > 0)\
+#define N_AND_Z(A) if((A) > 0)\
 	{\
 		CL(&flag.N);\
 	}\
@@ -70,6 +70,7 @@ void do_sob();
 void do_beq();
 void do_br();
 void do_tst();
+void do_tstb();
 void do_bpl();
 void do_jsr();
 void do_rts();
@@ -87,12 +88,12 @@ byte mem[64 * 1024];
 word reg[8];
 
 word r;
-word help;
 
 struct Operand
 {
 	word a;
 	word val;
+	word reg_or_mem;
 } ss , dd, nn;
 char xx;
 
@@ -106,7 +107,7 @@ struct psw
 
 struct STA
 {
-	word arr[1000];
+	word arr[10];
 	word size;
 } stack = {{0}, 1};
 
@@ -127,7 +128,7 @@ struct Command {
 	{0077000, 0177000, "sob", do_sob, HAS_NN},
 	{0001400, 0xFF00, "beq", do_beq, HAS_XX},
 	{0005700, 0177700, "tst", do_tst, HAS_DD},
-	{0105700, 0177700, "tstb",do_tst, HAS_DD},
+	{0105700, 0177700, "tstb",do_tstb, HAS_DD},
 	{0100000, 0xFF00, "bpl", do_bpl, HAS_XX},
 	{0000400, 0XFF00, "br", do_br, HAS_XX},
 	{0004000, 0177000, "jsr", do_jsr, HAS_DD},
@@ -322,6 +323,7 @@ struct Operand get_dd(word w)
 	switch(mode)
 	{
 		case 0:
+			res.reg_or_mem = 1;
 			res.a = rn;
 			res.val = reg[rn];
 			fprintf(stderr,"\tR%d", rn);
@@ -459,25 +461,21 @@ void do_halt()
 	exit(0);
 }
 
-void do_mov() 
+void do_mov()
 {
-	if(dd.a <= 7)
+	if(dd.a == odata)
 	{
-		reg[dd.a] = ss.val;
-		if(reg_read(dd.a) == 0)
-		{
-			if(!flag.Z) SE(&flag.Z);
-			else CL(&flag.Z);
-		}
+		fprintf(f_out, "%c", ss.val);
+	}
+	if(dd.reg_or_mem)
+	{
+		reg_write(dd.a, ss.val);
+		N_AND_Z((short)(reg[dd.a]));
 	}
 	else
 	{
 		w_write(dd.a, ss.val);
-		if(w_read(dd.a) == 0)
-		{
-			if(!flag.Z) SE(&flag.Z);
-			else CL(&flag.Z);
-		}
+		N_AND_Z((short)(w_read(dd.a)));
 	}
 }
 
@@ -487,69 +485,48 @@ void do_movb()
 	{
 		fprintf(f_out, "%c", ss.val);
 	}
-	if(dd.a <= 7)
+	if(dd.reg_or_mem)
 	{
-		reg[dd.a] = ss.val;
-		if(reg_read(dd.a) == 0)
-		{
-			if(!flag.Z) SE(&flag.Z);
-			else CL(&flag.Z);
-		}
+		reg_write(dd.a, ss.val);
+		N_AND_Z((short)(reg[dd.a]));
 	}
 	else
 	{
-		w_write(dd.a, ss.val);
-		if(w_read(dd.a) == 0)
-		{
-			if(!flag.Z) SE(&flag.Z);
-			else CL(&flag.Z);
-		}
-	}
-	if(flag.Z)
-	{
-		help = 1;
+		b_write(dd.a, ss.val);
+		N_AND_Z((char)(b_read(dd.a)));
 	}
 }
 
 void do_add() 
 {
-	if(dd.a <= 7)
+	if(dd.reg_or_mem)
 	{
-		reg[dd.a] = ss.val + dd.val;
-		if(reg_read(dd.a) == 0)
-		{
-			if(!flag.Z) SE(&flag.Z);
-			else CL(&flag.Z);
-		}
+		reg_write(dd.a, dd.val + ss.val);
+		N_AND_Z((short)(reg[dd.a]))
 	}
 	else
 	{
 		w_write(dd.a, ss.val + dd.val);
-		if(w_read(dd.a) == 0)
-		{
-			if(!flag.Z) SE(&flag.Z);
-			else CL(&flag.Z);
+		N_AND_Z((short)(reg[dd.a]))
 		}
 	}
-}
 
 void do_clr()
 {
 	SE(&flag.Z);
-	if(dd.a <= 7) reg_write(dd.a, 0);
+	if(dd.reg_or_mem) reg_write(dd.a, 0);
 	else w_write(dd.a, 0);
 }
 
 void do_sob()
 {
-	assert(nn.a < 6);
 	reg_write(nn.a, reg_read(nn.a) - 1);
 	word w = reg_read(nn.a);
 	if( w != 0)
 	{
 		pc -= 2 * nn.val;
-		fprintf(f_out, "\tR%o\t", nn.a);
-		fprintf(f_out, "%06o", pc);
+		fprintf(stderr, "\tR%o\t", nn.a);
+		fprintf(stderr, "%06o", pc);
 	}
 }
 
@@ -567,29 +544,22 @@ void do_br()
 
 void do_tst()
 {
-	if(dd.val > 0)
-	{
-		CL(&flag.N);
-	}
-	else if(dd.val < 0)
-	{
-		SE(&flag.N);
-	}
-	if(dd.val == 0)
-	{
-		SE(&flag.Z);
-	}
-	else if(dd.val != 0)
-	{
-		CL(&flag.Z);
-	}
+	N_AND_Z((short)(dd.val))
+	CL(&flag.C);
+	CL(&flag.V);
+}
+
+void do_tstb()
+{
+	N_AND_Z((char)(dd.val))
 	CL(&flag.C);
 	CL(&flag.V);
 }
 
 void do_bpl()
 {
-	if(flag.N) do_br();
+	assert(flag.N == 1 || flag.N == 0);
+	if(!flag.N) do_br();
 }
 
 void do_jsr()
@@ -610,37 +580,15 @@ void do_rts()
 
 void do_dec()
 {
-	if(dd.a <= 7)
+	if(dd.reg_or_mem)
 	{
 		reg_write(dd.a, dd.val - 1);
-		if(reg_read(dd.a) < 0)
-		{
-			SE(&flag.N);
-			CL(&flag.Z);
-		}
-		else if(reg_read(dd.a) > 0)
-		{
-			CL(&flag.N);
-			CL(&flag.Z);
-		}
-		else if(reg_read(dd.a) == 0)
-			SE(&flag.Z);
+		N_AND_Z(reg_read(dd.a))
 	}
 	else
 	{
 		w_write(dd.a, dd.val - 1);
-		if(w_read(dd.a) < 0)
-		{
-			SE(&flag.N);
-			CL(&flag.Z);
-		}
-		else if(w_read(dd.a) > 0)
-		{
-			CL(&flag.N);
-			CL(&flag.Z);
-		}
-		else if(w_read(dd.a) == 0)
-			SE(&flag.Z);
+		N_AND_Z(w_read(r))
 	}
 }
 
@@ -648,71 +596,27 @@ void do_mul()
 {
 	fprintf(stderr, "\tR%o", r);
 	reg_write(r, reg_read(r) * dd.val);
-	if(reg_read(r) < 0)
-	{
-		SE(&flag.N);
-		CL(&flag.Z);
-	}
-	else if(reg_read(r) > 0)
-	{
-		CL(&flag.N);
-		CL(&flag.Z);
-	}
-	else if(reg_read(r) == 0)
-		SE(&flag.Z);
+	N_AND_Z((short)reg_read(r))
 }
 
 void do_div()
 {
 	fprintf(stderr, "\tR%o", r);
 	reg_write(r, reg_read(r) / dd.val);
-	if(reg_read(r) < 0)
-	{
-		SE(&flag.N);
-		CL(&flag.Z);
-	}
-	else if(reg_read(r) > 0)
-	{
-		CL(&flag.N);
-		CL(&flag.Z);
-	}
-	else if(reg_read(r) == 0)
-		SE(&flag.Z);
+	N_AND_Z((short)reg_read(r))
 }
 
 void do_inc()
 {
-	if(dd.a <= 7)
+	if(dd.reg_or_mem)
 	{
 		reg_write(dd.a, dd.val + 1);
-		if(reg_read(dd.a) < 0)
-		{
-			SE(&flag.N);
-			CL(&flag.Z);
-		}
-		else if(reg_read(dd.a) > 0)
-		{
-			CL(&flag.N);
-			CL(&flag.Z);
-		}
-		else if(reg_read(dd.a) == 0)
-			SE(&flag.Z);
+		N_AND_Z((short)reg_read(dd.a))
 	}
 	else
 	{
 		w_write(dd.a, dd.val+1);
-		if(w_read(dd.a) < 0)
-		{
-			SE(&flag.N);
-			CL(&flag.Z);
-		}
-		else if(w_read(dd.a) > 0)
-		{
-			CL(&flag.N);
-			CL(&flag.Z);
-		}
-		else if(w_read(dd.a) == 0)
-			SE(&flag.Z);
+		N_AND_Z((short)w_read(dd.a))
 	}
 }
 
@@ -724,55 +628,22 @@ void do_bne()
 
 void do_sub()
 {
-	if(dd.a <= 7)
+	if(dd.reg_or_mem)
 	{
 		reg_write(dd.a, dd.val - ss.val);
-		if(reg_read(dd.a) < 0)
-		{
-			SE(&flag.N);
-			CL(&flag.Z);
-		}
-		else if(reg_read(dd.a) > 0)
-		{
-			CL(&flag.N);
-			CL(&flag.Z);
-		}
-		else if(reg_read(dd.a) == 0)
-			SE(&flag.Z);
+		N_AND_Z((short)reg_read(dd.a))
 	}
 	else
 	{
 		w_write(dd.a, dd.val - ss.val);
-		if(w_read(dd.a) < 0)
-		{
-			SE(&flag.N);
-			CL(&flag.Z);
-		}
-		else if(w_read(dd.a) > 0)
-		{
-			CL(&flag.N);
-			CL(&flag.Z);
-		}
-		else if(w_read(dd.a) == 0)
-			SE(&flag.Z);
+		N_AND_Z((short)w_read(dd.a))
 	}
 }
 
 void do_cmp()
 {
-	int k = dd.val - ss.val;
-	if(k < 0)
-	{
-		SE(&flag.N);
-		CL(&flag.Z);
-	}
-	else if(k > 0)
-	{
-		CL(&flag.N);
-		CL(&flag.Z);
-	}
-	else if(k == 0)
-		SE(&flag.Z);
+	word k = dd.val - ss.val;
+	N_AND_Z((short)k)
 }
 
 void do_jmp()
