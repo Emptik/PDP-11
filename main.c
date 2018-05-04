@@ -30,6 +30,7 @@ struct Command command[] = {
 	{0001000, 0177000, "bne", do_bne, HAS_XX},
 	{0020000, 0070000, "cmp", do_cmp, HAS_DD || HAS_SS},
 	{0000100, 0177700, "jmp", do_jmp, HAS_DD},
+	{0005500, 0177700, "adc", do_adc, HAS_DD},
 	{0000000, 0000000, "unknown", do_unknown, NO_PARAM}
 };
 

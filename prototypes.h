@@ -35,6 +35,11 @@ break;\
 	{\
 		CL(&flag.Z);\
 	}
+#define C_AND_V(Arg1, Arg2, dest_field) int val = (int)(Arg1) + (int)(Arg2);\
+	if(val != (dest_field))\
+		SE(&flag.C);\
+	else if(val == (dest_field)) \
+		CL(&flag.C);
 
 typedef unsigned char byte;
 typedef unsigned short int word;
@@ -82,6 +87,7 @@ void do_sub();
 void do_bne();
 void do_cmp();
 void do_jmp();
+void do_adc();
 void do_unknown();
 
 struct Operand

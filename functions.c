@@ -199,14 +199,16 @@ void do_add()
 	if(dd.reg_or_mem)
 	{
 		reg_write(dd.a, dd.val + ss.val);
-		N_AND_Z((short)(reg[dd.a]))
+		N_AND_Z((short)(reg_read(dd.a)))
+		C_AND_V(dd.val, ss.val, reg_read(dd.a));
 	}
 	else
 	{
 		w_write(dd.a, ss.val + dd.val);
-		N_AND_Z((short)(reg[dd.a]))
-		}
+		N_AND_Z((short)(w_read(dd.a)))
+		C_AND_V(dd.val, ss.val, w_read(dd.a));
 	}
+}
 
 void do_clr()
 {
@@ -346,6 +348,22 @@ void do_cmp()
 void do_jmp()
 {
 	pc = dd.val;
+}
+
+void do_adc()
+{
+	if(dd.reg_or_mem)
+	{
+		reg_write(dd.a, dd.val + flag.C);
+		N_AND_Z((short)(reg_read(dd.a)))
+		C_AND_V(dd.val, ss.val, reg_read(dd.a));
+	}
+	else
+	{
+		w_write(dd.a, dd.val + flag.C);
+		N_AND_Z((short)(w_read(dd.a)))
+		C_AND_V(dd.val, ss.val, w_read(dd.a));
+	}
 }
 
 void do_unknown()
