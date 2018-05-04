@@ -151,10 +151,10 @@ void CL(byte type)
 		case Z:
 			psw = psw & 11;
 			break;
-		case C:
+		case V:
 			psw = psw & 13;
 			break;
-		case V:
+		case C:
 			psw = psw & 14;
 			break;
 		default:
@@ -174,10 +174,10 @@ void SE(byte type)
 		case Z:
 			psw = psw | 4;
 			break;
-		case C:
+		case V:
 			psw = psw | 2;
 			break;
-		case V:
+		case C:
 			psw = psw | 1;
 			break;
 		default:
@@ -194,9 +194,9 @@ byte RE(byte type)
 			return (psw & 8)>>3;
 		case Z:
 			return (psw & 4)>>2;
-		case C:
-			return (psw & 2)>>1;
 		case V:
+			return (psw & 2)>>1;
+		case C:
 			return (psw & 1);
 		default:
 			fprintf(stderr, "Wrong flag in SE\n");
