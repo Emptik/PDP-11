@@ -45,6 +45,15 @@ typedef unsigned char byte;
 typedef unsigned short int word;
 typedef unsigned short adr;
 
+enum Token {
+	MEM,
+	REG,
+	N = 0,
+	Z,
+	C,
+	V,
+};
+
 void reg_write(adr a, word val);
 word reg_read(adr a);
 byte b_read(adr a);

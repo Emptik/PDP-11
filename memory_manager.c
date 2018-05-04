@@ -1,6 +1,5 @@
 #include "prototypes.h"
 
-extern FILE * f_out;
 extern byte mem[];
 extern word reg[];
 extern word r;

@@ -20,7 +20,7 @@ struct Operand get_dd(word w)
 	switch(mode)
 	{
 		case 0:
-			res.reg_or_mem = 1;
+			res.reg_or_mem = REG;
 			res.a = rn;
 			res.val = reg[rn];
 			fprintf(stderr,"\tR%d", rn);
@@ -164,7 +164,7 @@ void do_mov()
 	{
 		fprintf(f_out, "%c", ss.val);
 	}
-	if(dd.reg_or_mem)
+	if(dd.reg_or_mem == REG)
 	{
 		reg_write(dd.a, ss.val);
 		N_AND_Z((short)(reg[dd.a]));
@@ -182,7 +182,7 @@ void do_movb()
 	{
 		fprintf(f_out, "%c", ss.val);
 	}
-	if(dd.reg_or_mem)
+	if(dd.reg_or_mem == REG)
 	{
 		reg_write(dd.a, ss.val);
 		N_AND_Z((short)(reg[dd.a]));
@@ -196,7 +196,7 @@ void do_movb()
 
 void do_add() 
 {
-	if(dd.reg_or_mem)
+	if(dd.reg_or_mem == REG)
 	{
 		reg_write(dd.a, dd.val + ss.val);
 		N_AND_Z((short)(reg_read(dd.a)))
@@ -213,7 +213,7 @@ void do_add()
 void do_clr()
 {
 	SE(&flag.Z);
-	if(dd.reg_or_mem) reg_write(dd.a, 0);
+	if(dd.reg_or_mem == REG) reg_write(dd.a, 0);
 	else w_write(dd.a, 0);
 }
 
@@ -279,7 +279,7 @@ void do_rts()
 
 void do_dec()
 {
-	if(dd.reg_or_mem)
+	if(dd.reg_or_mem == REG)
 	{
 		reg_write(dd.a, dd.val - 1);
 		N_AND_Z(reg_read(dd.a))
@@ -307,7 +307,7 @@ void do_div()
 
 void do_inc()
 {
-	if(dd.reg_or_mem)
+	if(dd.reg_or_mem == REG)
 	{
 		reg_write(dd.a, dd.val + 1);
 		N_AND_Z((short)reg_read(dd.a))
@@ -327,7 +327,7 @@ void do_bne()
 
 void do_sub()
 {
-	if(dd.reg_or_mem)
+	if(dd.reg_or_mem == REG)
 	{
 		reg_write(dd.a, dd.val - ss.val);
 		N_AND_Z((short)reg_read(dd.a))
@@ -352,7 +352,7 @@ void do_jmp()
 
 void do_adc()
 {
-	if(dd.reg_or_mem)
+	if(dd.reg_or_mem == REG)
 	{
 		reg_write(dd.a, dd.val + flag.C);
 		N_AND_Z((short)(reg_read(dd.a)))
