@@ -191,17 +191,13 @@ byte RE(byte type)
 	switch(type)
 	{
 		case N:
-			if(psw & 8) return 1;
-			else return 0;
+			return (psw & 8)>>3;
 		case Z:
-			if(psw & 4) return 1;
-			else return 0;
+			return (psw & 4)>>2;
 		case C:
-			if(psw & 2) return 1;
-			else return 0;
+			return (psw & 2)>>1;
 		case V:
-			if(psw & 1) return 1;
-			else return 0;
+			return (psw & 1);
 		default:
 			fprintf(stderr, "Wrong flag in SE\n");
 			exit(6);
