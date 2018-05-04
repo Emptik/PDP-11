@@ -417,6 +417,50 @@ void do_adc()
 	}
 }
 
+void do_bmi()
+{
+	if(RE(N)) do_br();
+}
+
+void do_asr()
+{
+	byte attribute = dd.val & 1;
+	if(dd.reg_or_mem == REG)
+	{
+		if((short)(dd.val) > 0)
+		{
+			reg_write(dd.a, dd.val >> 1);
+			fprintf(stderr, "\t[R%o = %06o]", dd.a, reg_read(dd.a)); 
+			N_AND_Z((short)(reg_read(dd.a)))
+			C_AND_V(dd.val >> 1, reg_read(dd.a))
+		}
+		else
+		{
+			reg_write(dd.a, (0100000 | (dd.val >> 1)));
+			fprintf(stderr, "\t[R%o = %06o]", dd.a, reg_read(dd.a)); 
+			N_AND_Z((short)(reg_read(dd.a)))
+			C_AND_V((0100000 | (dd.val >> 1)), reg_read(dd.a))
+		}
+	}
+	else
+	{
+		if((short)(dd.val) > 0)
+		{
+			w_write(dd.a, dd.val >> 1);
+			fprintf(stderr, "\t[%o = %06o]", dd.a, w_read(dd.a)); 
+			N_AND_Z((short)(w_read(dd.a)))
+		}
+		else
+		{
+			w_write(dd.a, (0100000 | (dd.val >> 1)));
+			fprintf(stderr, "\t[%o = %06o]", dd.a, w_read(dd.a)); 
+			N_AND_Z((short)(w_read(dd.a)))
+		}
+	}
+	if(attribute) SE(C);
+	else CL(C);
+}
+
 void do_unknown()
 {
 	fprintf(stderr, "\n");

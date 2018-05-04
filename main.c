@@ -13,7 +13,7 @@ struct Command command[] = {
 	{0010000, 0170000, "mov", do_mov, HAS_SS | HAS_DD},
 	{0110000, 0170000, "movb", do_movb, HAS_SS | HAS_DD},
 	{0060000, 0170000, "add", do_add, HAS_SS | HAS_DD},
-	{0005000, 0017700, "clr", do_clr, HAS_DD},
+	{0005000, 0177700, "clr", do_clr, HAS_DD},
 	{0077000, 0177000, "sob", do_sob, HAS_NN},
 	{0001400, 0xFF00, "beq", do_beq, HAS_XX},
 	{0005700, 0177700, "tst", do_tst, HAS_DD},
@@ -22,15 +22,17 @@ struct Command command[] = {
 	{0000400, 0XFF00, "br", do_br, HAS_XX},
 	{0004000, 0177000, "jsr", do_jsr, HAS_DD},
 	{0000200, 0177700, "rts", do_rts, NO_PARAM},
-	{0005300, 0077700, "dec", do_dec, HAS_DD},
+	{0005300, 0177700, "dec", do_dec, HAS_DD},
 	{0070000, 0177000, "mul", do_mul, HAS_DD},
 	{0071000, 0177000, "div", do_div, HAS_DD},
-	{0005200, 0077700, "inc", do_inc, HAS_DD},
+	{0005200, 0177700, "inc", do_inc, HAS_DD},
 	{0160000, 0170000, "sub", do_sub, HAS_SS | HAS_DD},
 	{0001000, 0177000, "bne", do_bne, HAS_XX},
 	{0020000, 0070000, "cmp", do_cmp, HAS_DD || HAS_SS},
 	{0000100, 0177700, "jmp", do_jmp, HAS_DD},
 	{0005500, 0177700, "adc", do_adc, HAS_DD},
+	{0100400, 0177700, "bmi", do_bmi, HAS_XX},
+	{0006200, 0177700, "asr", do_asr, HAS_DD},
 	{0000000, 0000000, "unknown", do_unknown, NO_PARAM}
 };
 

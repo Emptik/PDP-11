@@ -98,6 +98,8 @@ void do_bne();
 void do_cmp();
 void do_jmp();
 void do_adc();
+void do_bmi();
+void do_asr();
 void do_unknown();
 
 struct Operand
