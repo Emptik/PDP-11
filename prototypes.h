@@ -35,10 +35,10 @@ break;\
 	{\
 		CL(Z);\
 	}
-#define C_AND_V(Arg1, Arg2, dest_field) int val = (int)(Arg1) + (int)(Arg2);\
-	if(val != (dest_field))\
+#define C_AND_V(Arg1, dest_field) int val_macro = (int)(Arg1);\
+	if(val_macro != (dest_field))\
 		SE(C);\
-	else if(val == (dest_field)) \
+	else if(val_macro == (dest_field)) \
 		CL(C);
 
 typedef unsigned char byte;

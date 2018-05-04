@@ -110,7 +110,7 @@ struct Operand get_dd(word w)
 			break;
 		}
 		default:
-			fprintf(f_out,"MODE %d NOT IMPLEMENTED YET!\n", mode);
+			fprintf(f_out,"Mode %d not implemented yet!\n", mode);
 			exit(3);
 	}
 	return res;
@@ -253,13 +253,13 @@ void do_add()
 	{
 		reg_write(dd.a, dd.val + ss.val);
 		N_AND_Z((short)(reg_read(dd.a)))
-		C_AND_V(dd.val, ss.val, reg_read(dd.a));
+		C_AND_V(dd.val + ss.val, reg_read(dd.a));
 	}
 	else
 	{
 		w_write(dd.a, ss.val + dd.val);
 		N_AND_Z((short)(w_read(dd.a)))
-		C_AND_V(dd.val, ss.val, w_read(dd.a));
+		C_AND_V(dd.val + ss.val, w_read(dd.a));
 	}
 }
 
@@ -407,13 +407,13 @@ void do_adc()
 	{
 		reg_write(dd.a, dd.val + RE(C));
 		N_AND_Z((short)(reg_read(dd.a)))
-		C_AND_V(dd.val, RE(C), reg_read(dd.a));
+		C_AND_V(dd.val + RE(C), reg_read(dd.a));
 	}
 	else
 	{
 		w_write(dd.a, dd.val + RE(C));
 		N_AND_Z((short)(w_read(dd.a)))
-		C_AND_V(dd.val, RE(C), w_read(dd.a));
+		C_AND_V(dd.val + RE(C), w_read(dd.a));
 	}
 }
 
