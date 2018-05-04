@@ -4,9 +4,9 @@ extern FILE * f_out;
 extern byte mem[];
 extern word reg[];
 extern word r;
+extern word psw;
 extern struct Operand ss, dd, nn;
 extern char xx;
-extern struct psw flag;
 extern struct STA stack;
 extern struct Command command[];
 
@@ -141,14 +141,71 @@ void r_mean(char * model, word w)
 	}
 }
 
-void CL(byte * x)
+void CL(byte type)
 {
-	*(x) = 0;
+	switch(type)
+	{
+		case N:
+			psw = psw & 7;
+			break;
+		case Z:
+			psw = psw & 11;
+			break;
+		case C:
+			psw = psw & 13;
+			break;
+		case V:
+			psw = psw & 14;
+			break;
+		default:
+			fprintf(stderr, "Wrong flag in CL\n");
+			exit(5);
+	}
 }
 
-void SE(byte * x)
+
+void SE(byte type)
 {
-	*(x) = 1;
+	switch(type)
+	{
+		case N:
+			psw = psw | 8;
+			break;
+		case Z:
+			psw = psw | 4;
+			break;
+		case C:
+			psw = psw | 2;
+			break;
+		case V:
+			psw = psw | 1;
+			break;
+		default:
+			fprintf(stderr, "Wrong flag in SE\n");
+			exit(6);
+	}
+}
+
+byte RE(byte type)
+{
+	switch(type)
+	{
+		case N:
+			if(psw & 8) return 1;
+			else return 0;
+		case Z:
+			if(psw & 4) return 1;
+			else return 0;
+		case C:
+			if(psw & 2) return 1;
+			else return 0;
+		case V:
+			if(psw & 1) return 1;
+			else return 0;
+		default:
+			fprintf(stderr, "Wrong flag in SE\n");
+			exit(6);
+	}
 }
 
 void do_halt()
@@ -167,7 +224,7 @@ void do_mov()
 	if(dd.reg_or_mem == REG)
 	{
 		reg_write(dd.a, ss.val);
-		N_AND_Z((short)(reg[dd.a]));
+		N_AND_Z((short)(reg_read(dd.a)));
 	}
 	else
 	{
@@ -212,8 +269,8 @@ void do_add()
 
 void do_clr()
 {
-	SE(&flag.Z);
-	if(dd.reg_or_mem == REG) reg_write(dd.a, 0);
+	SE(Z);
+	if(dd.reg_or_mem) reg_write(dd.a, 0);
 	else w_write(dd.a, 0);
 }
 
@@ -231,8 +288,7 @@ void do_sob()
 
 void do_beq()
 {
-	assert(flag.Z == 1 || flag.Z == 0);
-	if(flag.Z) do_br();
+	if(RE(Z)) do_br();
 }
 
 void do_br()
@@ -244,21 +300,20 @@ void do_br()
 void do_tst()
 {
 	N_AND_Z((short)(dd.val))
-	CL(&flag.C);
-	CL(&flag.V);
+	CL(C);
+	CL(V);
 }
 
 void do_tstb()
 {
 	N_AND_Z((char)(dd.val))
-	CL(&flag.C);
-	CL(&flag.V);
+	CL(C);
+	CL(V);
 }
 
 void do_bpl()
 {
-	assert(flag.N == 1 || flag.N == 0);
-	if(!flag.N) do_br();
+	if(!RE(N)) do_br();
 }
 
 void do_jsr()
@@ -321,7 +376,7 @@ void do_inc()
 
 void do_bne()
 {
-	if(!flag.Z)
+	if(!RE(Z))
 		do_br();
 }
 
@@ -354,15 +409,15 @@ void do_adc()
 {
 	if(dd.reg_or_mem == REG)
 	{
-		reg_write(dd.a, dd.val + flag.C);
+		reg_write(dd.a, dd.val + RE(C));
 		N_AND_Z((short)(reg_read(dd.a)))
-		C_AND_V(dd.val, ss.val, reg_read(dd.a));
+		C_AND_V(dd.val, RE(C), reg_read(dd.a));
 	}
 	else
 	{
-		w_write(dd.a, dd.val + flag.C);
+		w_write(dd.a, dd.val + RE(C));
 		N_AND_Z((short)(w_read(dd.a)))
-		C_AND_V(dd.val, ss.val, w_read(dd.a));
+		C_AND_V(dd.val, RE(C), w_read(dd.a));
 	}
 }
 

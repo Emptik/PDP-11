@@ -21,25 +21,25 @@ break;\
 #define odata 0177566
 #define N_AND_Z(A) if((A) > 0)\
 	{\
-		CL(&flag.N);\
+		CL(N);\
 	}\
 	else if((A) < 0)\
 	{\
-		SE(&flag.N);\
+		SE(N);\
 	}\
 	if((A) == 0)\
 	{\
-		SE(&flag.Z);\
+		SE(Z);\
 	}\
 	else if((A) != 0)\
 	{\
-		CL(&flag.Z);\
+		CL(Z);\
 	}
 #define C_AND_V(Arg1, Arg2, dest_field) int val = (int)(Arg1) + (int)(Arg2);\
 	if(val != (dest_field))\
-		SE(&flag.C);\
+		SE(C);\
 	else if(val == (dest_field)) \
-		CL(&flag.C);
+		CL(C);
 
 typedef unsigned char byte;
 typedef unsigned short int word;
@@ -71,8 +71,9 @@ struct Operand get_nn(word w);
 char get_xx(word w);
 void r_mean(char * model, word w);
 
-void SE(byte * x);
-void CL(byte * x);
+void SE(byte type);
+void CL(byte type);
+byte RE(byte type);
 
 void run(adr pc0);
 void do_halt();
@@ -104,14 +105,6 @@ struct Operand
 	word a;
 	word val;
 	word reg_or_mem;
-};
-
-struct psw
-{
-	byte N;
-	byte Z;
-	byte V;
-	byte C;
 };
 
 struct STA

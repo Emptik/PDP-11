@@ -4,9 +4,9 @@ FILE * f_out;
 byte mem[64 * 1024];
 word reg[8];
 word r;
+word psw;
 struct Operand ss, dd, nn;
 char xx;
-struct psw flag;
 struct STA stack = {{0}, 1};
 struct Command command[] = {
 	{0, 0xFFFF, "halt", do_halt, NO_PARAM},

@@ -3,9 +3,9 @@
 extern byte mem[];
 extern word reg[];
 extern word r;
+extern word psw;
 extern struct Operand ss, dd, nn;
 extern char xx;
-extern struct psw flag;
 extern struct STA stack;
 extern struct Command command[];
 
@@ -119,5 +119,5 @@ void reg_print()
 		if(i % 2)
 			printf("r%d=%06o ", i, reg[i]); 
 	}
-	printf("\npsw=%o%o%o%o\n", flag.N, flag.Z, flag.V, flag.C);
+	printf("\npsw=%06o\n", psw);
 }
