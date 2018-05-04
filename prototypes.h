@@ -93,6 +93,7 @@ void do_dec();
 void do_mul();
 void do_div();
 void do_inc();
+void do_incb();
 void do_sub();
 void do_bne();
 void do_cmp();
@@ -100,6 +101,7 @@ void do_jmp();
 void do_adc();
 void do_bmi();
 void do_asr();
+void do_asl();
 void do_unknown();
 
 struct Operand

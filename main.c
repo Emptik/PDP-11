@@ -26,6 +26,7 @@ struct Command command[] = {
 	{0070000, 0177000, "mul", do_mul, HAS_DD},
 	{0071000, 0177000, "div", do_div, HAS_DD},
 	{0005200, 0177700, "inc", do_inc, HAS_DD},
+	{0105200, 0177700, "incb", do_incb, HAS_DD},
 	{0160000, 0170000, "sub", do_sub, HAS_SS | HAS_DD},
 	{0001000, 0177000, "bne", do_bne, HAS_XX},
 	{0020000, 0070000, "cmp", do_cmp, HAS_DD || HAS_SS},
@@ -33,6 +34,7 @@ struct Command command[] = {
 	{0005500, 0177700, "adc", do_adc, HAS_DD},
 	{0100400, 0177700, "bmi", do_bmi, HAS_XX},
 	{0006200, 0177700, "asr", do_asr, HAS_DD},
+	{0006300, 0177700, "asl", do_asl, HAS_DD},
 	{0000000, 0000000, "unknown", do_unknown, NO_PARAM}
 };
 
