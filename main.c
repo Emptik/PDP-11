@@ -35,8 +35,10 @@ struct Command command[] = {
 	{0100400, 0177700, "bmi", do_bmi, HAS_XX},
 	{0003000, 0177700, "bgt", do_bgt, HAS_XX},
 	{0002400, 0177700, "blt", do_blt, HAS_XX},
+	{0040000, 0170000, "bic", do_bic, HAS_SS | HAS_DD},
 	{0006200, 0177700, "asr", do_asr, HAS_DD},
 	{0006300, 0177700, "asl", do_asl, HAS_DD},
+	{0072000, 0177000, "ash", do_ash, HAS_DD},
 	{0000000, 0000000, "unknown", do_unknown, NO_PARAM}
 };
 

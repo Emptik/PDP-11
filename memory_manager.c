@@ -30,7 +30,11 @@ word reg_read(adr a)
 }
 
 word w_read(adr a) {
-	assert(!(a % 2));
+	if(a % 2)
+	{
+		fprintf(stderr, "You odd adr is:%06o\n", a);
+		exit(102);
+	}
 	word val = 0xffff;
 	val = val & (((word)mem[a + 1]) << 8);
 	val = val + (word)mem[a];

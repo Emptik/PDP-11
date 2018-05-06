@@ -104,6 +104,8 @@ void do_asr();
 void do_asl();
 void do_bgt();
 void do_blt();
+void do_bic();
+void do_ash();
 void do_unknown();
 
 struct Operand

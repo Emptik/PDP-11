@@ -28,7 +28,7 @@ struct Operand get_dd(word w)
 		case 1:
 			res.a = reg[rn];
 			res.val = w_read(res.a);
-			fprintf(stderr,"\tCLR (R%d)", rn);
+			fprintf(stderr,"\t(R%d)", rn);
 			break;
 		case 2:
 		{
@@ -37,7 +37,14 @@ struct Operand get_dd(word w)
 				res.a = reg[rn];
 				res.val = w_read(res.a);
 				reg[rn] += 2;
-				fprintf(stderr,"\t#%06o ", res.val);
+				fprintf(stderr,"\t#%06o", res.val);
+			}
+			else if(rn == 6)
+			{
+				res.a = reg[rn];
+				res.val = w_read(res.a);
+				reg[rn] += 2;
+				fprintf(stderr,"\t(sp)+");
 			}
 			else
 			{
@@ -82,6 +89,17 @@ struct Operand get_dd(word w)
 				res.a = reg[rn];
 				res.val = w_read(res.a);
 				fprintf(stderr,"\t-(pc)");
+			}
+			else if (rn == 6)
+			{
+				reg[rn] -= 2;
+				res.a = reg[rn];
+				if(res.a % 2)
+				{
+					fprintf(stderr, "\t%06o-> %06o", reg[rn], by);
+				}
+				res.val = w_read(res.a);
+				fprintf(stderr,"\t-(sp)");
 			}
 			else
 			{
@@ -131,7 +149,7 @@ char get_xx(word w)
 
 void r_mean(char * model, word w)
 {
-	if(!strcmp(model,"jsr") || !strcmp(model,"mul") || !strcmp(model,"div"))
+	if(!strcmp(model,"jsr") || !strcmp(model,"mul") || !strcmp(model,"div") || !strcmp(model, "ash"))
 	{
 		r = (w>>6)&7;
 	}
@@ -240,7 +258,7 @@ void do_movb()
 		reg_write(dd.a, ss.val);
 		N_AND_Z((short)(reg[dd.a]));
 	}
-	else
+	if(dd.reg_or_mem == MEM)
 	{
 		b_write(dd.a, ss.val);
 		N_AND_Z((char)(b_read(dd.a)));
@@ -295,6 +313,7 @@ void do_br()
 
 void do_tst()
 {
+	fprintf(stderr, "\t[%06o]", dd.val);
 	N_AND_Z((short)(dd.val))
 	CL(C);
 	CL(V);
@@ -302,6 +321,7 @@ void do_tst()
 
 void do_tstb()
 {
+	fprintf(stderr, "\t[%06o]", dd.val);
 	N_AND_Z((char)(dd.val))
 	CL(C);
 	CL(V);
@@ -452,6 +472,12 @@ void do_blt()
 	if(RE(N) ^ RE(V)) do_br();
 }
 
+void do_bic()
+{
+	dd.val = dd.val & (~ss.val);
+	N_AND_Z((short)(dd.val));
+}
+
 void do_asr()
 {
 	word attribute = dd.val & 1;
@@ -506,6 +532,30 @@ void do_asl()
 	}
 	if(attribute) SE(C);
 	else CL(C);
+}
+
+void do_ash()
+{
+	fprintf(stderr, "\tR%o", r);
+	int n = dd.val & 077;
+	if(!(n >> 5)) 
+	{
+		reg[r] = reg[r] << (n - 1);
+		if(reg[r] & 0100000) SE(C);
+		else CL(C);
+		reg[r] = reg[r] << 1;
+		N_AND_Z((short)(reg[r]));
+	}
+	else
+	{
+		int head_bit = reg[r] & 0100000;
+		reg[r] = reg[r] >> (n - 1);
+		if(reg[r] & 1) SE(C);
+		else CL(C);
+		reg[r] = (reg[r] >> 1) | head_bit;
+		N_AND_Z((short)(reg[r]));
+	}
+	fprintf(stderr, "\t[R%o = %06o]", r, reg[r]);
 }
 
 void do_unknown()
