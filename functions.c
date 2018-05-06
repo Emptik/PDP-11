@@ -352,8 +352,14 @@ void do_mul()
 void do_div()
 {
 	fprintf(stderr, "\tR%o", r);
-	reg_write(r, reg_read(r) / dd.val);
+	unsigned int long_word = ((reg_read(r))<<16) + reg_read(r+1);
+	reg_write(r, long_word / dd.val);
+	reg_write(r+1, long_word % dd.val);
 	N_AND_Z((short)reg_read(r))
+	if(!dd.val)
+		SE(C);
+	else
+		CL(C);
 }
 
 void do_inc()
