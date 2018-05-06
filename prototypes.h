@@ -102,6 +102,8 @@ void do_adc();
 void do_bmi();
 void do_asr();
 void do_asl();
+void do_bgt();
+void do_blt();
 void do_unknown();
 
 struct Operand

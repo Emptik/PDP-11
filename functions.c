@@ -418,7 +418,7 @@ void do_cmp()
 
 void do_jmp()
 {
-	pc = dd.val;
+	pc = dd.a;
 }
 
 void do_adc()
@@ -440,6 +440,16 @@ void do_adc()
 void do_bmi()
 {
 	if(RE(N)) do_br();
+}
+
+void do_bgt()
+{
+	if((RE(Z) | (RE(N) ^ RE(V)))) do_br();
+}
+
+void do_blt()
+{
+	if(RE(N) ^ RE(V)) do_br();
 }
 
 void do_asr()
