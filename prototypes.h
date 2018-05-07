@@ -115,12 +115,6 @@ struct Operand
 	word reg_or_mem;
 };
 
-struct STA
-{
-	word arr[10];
-	word size;
-};
-
 struct Command {
 	word opcode;
 	word mask;

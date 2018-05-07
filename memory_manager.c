@@ -6,7 +6,6 @@ extern word r;
 extern word psw;
 extern struct Operand ss, dd, nn;
 extern char xx;
-extern struct STA stack;
 extern struct Command command[];
 
 void reg_write(adr a, word val)
@@ -115,13 +114,13 @@ void reg_print()
 	for( ; i <= 6; i++)
 	{
 		if(!(i % 2))
-			printf("r%d=%06o ", i, reg[i]); 
+			fprintf(stderr, "r%d=%06o ", i, reg[i]); 
 	}
 	printf("\n");
 	for(i = 0; i <= 7; i++)
 	{
 		if(i % 2)
-			printf("r%d=%06o ", i, reg[i]); 
+			fprintf(stderr, "r%d=%06o ", i, reg[i]); 
 	}
-	printf("\npsw=%06o\n", psw);
+	fprintf(stderr, "\npsw=%06o\n", psw);
 }

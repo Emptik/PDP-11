@@ -1,5 +1,6 @@
 #include "prototypes.h"
 
+char argument[10];
 FILE * f_out;
 byte mem[64 * 1024];
 word reg[8];
@@ -7,7 +8,6 @@ word r;
 word psw;
 struct Operand ss, dd, nn;
 char xx;
-struct STA stack = {{0}, 1};
 struct Command command[] = {
 	{0, 0xFFFF, "halt", do_halt, NO_PARAM},
 	{0010000, 0170000, "mov", do_mov, HAS_SS | HAS_DD},
@@ -46,7 +46,8 @@ int main(int argc, char **argv)
 {
 	mem[ostat] = 0xFF;
 	test_mem();
-	load_file(argv[1]);
+	memcpy(argument, argv[1], 3);
+	load_file(argv[2]);
 	f_out = fopen("list", "w");
 	if(!f_out)
 	{
@@ -92,6 +93,11 @@ void run(adr pc0)
 					xx = get_xx(w);
 				}
 				cmd.func();
+				if(!strcmp(argument, "-t"))
+				{
+					fprintf(stderr, "\n");
+					reg_print();
+				}
 				break;
 			}
 		}

@@ -7,7 +7,6 @@ extern word r;
 extern word psw;
 extern struct Operand ss, dd, nn;
 extern char xx;
-extern struct STA stack;
 extern struct Command command[];
 
 struct Operand get_dd(word w)
@@ -15,8 +14,8 @@ struct Operand get_dd(word w)
 	struct Operand res = {0, 0};
 	word rn = w & 7;
 	word mode = (w >> 3) & 7;
-	word by = (w & 0x200)>>9;
-	assert(by == 1 || by == 0);
+	word by_ss = (w & 0x200);
+	word by_dd = (w & 0100000);
 	switch(mode)
 	{
 		case 0:
@@ -48,13 +47,13 @@ struct Operand get_dd(word w)
 			}
 			else
 			{
-				if(by == 1)
+				if(by_ss)
 				{
 					res.a = reg[rn];
 					res.val = (char)b_read(res.a);
 					reg[rn] += 1;
 				}
-				else if(by == 0)
+				else
 				{
 					res.a = reg[rn];
 					res.val = w_read(res.a);
@@ -68,15 +67,15 @@ struct Operand get_dd(word w)
 			res.a = reg[rn];
 			reg[rn] += 2;
 			assert(!(res.a % 2));
-			if(!by)
+			if(!by_ss)
 			{
 				res.a = w_read(res.a);
 				res.val = w_read(res.a);
 			}
-			if(by)
+			if(by_ss)
 			{
 				res.a = w_read(res.a);
-				res.val = b_read(res.a);
+				res.val = (char)b_read(res.a);
 			}
 			if(rn == 7)
 				fprintf(stderr,"\t@#%06o ", res.a);
@@ -94,22 +93,18 @@ struct Operand get_dd(word w)
 			{
 				reg[rn] -= 2;
 				res.a = reg[rn];
-				if(res.a % 2)
-				{
-					fprintf(stderr, "\t%06o-> %06o", reg[rn], by);
-				}
 				res.val = w_read(res.a);
 				fprintf(stderr,"\t-(sp)");
 			}
 			else
 			{
-				if(by == 1)
+				if(by_ss || by_dd)
 				{
 					reg[rn] -= 1;
 					res.a = reg[rn];
 					res.val = (char)b_read(res.a);
 				}
-				else if(by == 0)
+				else
 				{
 					reg[rn] -= 2;
 					res.a = reg[rn];
@@ -122,7 +117,8 @@ struct Operand get_dd(word w)
 		{
 			pc += 2;
 			res.a =  reg_read(rn) + w_read(pc-2);
-			res.val = w_read(res.a);
+			if(!by_dd) res.val = w_read(res.a);
+			else res.val = (char)b_read(res.a);
 			if( rn != 7) fprintf(stderr, "\t%06o(R%o)", w_read(pc-2), rn);
 			else fprintf (stderr, "\t#%06o", res.a);
 			break;
@@ -252,6 +248,7 @@ void do_movb()
 	if(dd.a == odata)
 	{
 		fprintf(f_out, "%c", ss.val);
+		return ;
 	}
 	if(dd.reg_or_mem == REG)
 	{
@@ -334,17 +331,17 @@ void do_bpl()
 
 void do_jsr()
 {
-	stack.arr[stack.size] = pc;
+	sp -= 2;
+	w_write(sp, reg_read(r));
 	reg_write(r, pc);
 	pc = dd.a;
-	stack.size++;
 }
 
 void do_rts()
 {
 	pc = reg_read(r);
-	reg_write(r, stack.arr[stack.size-1]);
-	stack.size--;
+	reg_write(r, w_read(sp));
+	sp += 2;
 	fprintf(stderr,"\t%06o", pc);
 }
 
@@ -475,6 +472,16 @@ void do_blt()
 void do_bic()
 {
 	dd.val = dd.val & (~ss.val);
+	if(dd.reg_or_mem == REG)
+	{
+		reg_write(dd.a, dd.val & (~ss.val));
+		N_AND_Z((short)(reg_read(dd.a)));
+	}
+	else
+	{
+		w_write(dd.a, dd.val);
+		N_AND_Z((short)(w_read(dd.a)));
+	}
 	N_AND_Z((short)(dd.val));
 }
 
